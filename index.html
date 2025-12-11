@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Grey Corner — ANALYTIQUE FOOD COST</title>
+
+<style>
+  :root{
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --border: #334155;
+    --text-main: #f1f5f9;
+    --text-muted: #94a3b8;
+    --accent: #38bdf8;
+    --cost: #f43f5e;
+    --profit: #10b981;
+    --sales: #fbbf24;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text-main);font-family:'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:15px;line-height:1.5}
+  img{max-width:100%;display:block}
+
+  .container{max-width:1200px;margin:0 auto;padding:20px}
+  
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:15px 0;position:sticky;top:0;z-index:50;box-shadow:0 4px 12px rgba(0,0,0,0.3)}
+  .head-content{display:flex;align-items:center;justify-content:space-between; max-width:1200px;margin:0 auto;padding:0 20px;}
+  .brand{font-size:20px;font-weight:700;letter-spacing:1px;color:var(--text-main); text-transform:uppercase; display:flex; align-items:center; gap:12px;}
+  .brand span{color:var(--accent);}
+  .brand-badge{background:var(--accent);color:#000;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:800;}
+
+  nav{background:#151e2e;border-bottom:1px solid var(--border);position:sticky;top:61px;z-index:40;overflow-x:auto;white-space:nowrap;padding:5px 0}
+  .tabs{display:flex;justify-content:center;min-width:max-content;padding:0 20px}
+  .tab{padding:12px 16px;color:var(--text-muted);text-decoration:none;font-weight:600;font-size:14px;transition:0.2s;border-bottom:3px solid transparent; cursor: pointer;}
+  .tab:hover{color:#fff}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:24px;padding:30px 0}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;display:flex;flex-direction:column;transition:transform 0.2s, box-shadow 0.2s;}
+  .card:hover{transform:translateY(-3px);box-shadow:0 10px 25px rgba(0,0,0,0.4);border-color:var(--text-muted)}
+
+  .card-header{position:relative;height:160px;}
+  .card-img{width:100%;height:100%;object-fit:cover;opacity:0.9;transition:0.3s;background:#000;}
+  .card:hover .card-img{opacity:1}
+  .card-title-overlay{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top, #0f172a, transparent);padding:60px 16px 12px;}
+  .name{font-size:18px;font-weight:700;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,0.8)}
+
+  .stats-block{padding:16px;background:#161f2e;border-bottom:1px solid var(--border);}
+  .matrix{display:grid;grid-template-columns: 1fr 1fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+  .cell{background:var(--surface);padding:10px 4px;text-align:center;display:flex;flex-direction:column;justify-content:center;}
+  .cell label{font-size:10px;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px;letter-spacing:0.5px}
+  .cell val{font-weight:700;font-size:15px;font-family:'Consolas', monospace;}
+  
+  .c-cost{color:var(--cost)}
+  .c-sales{color:var(--text-main)}
+  .c-gain{color:var(--profit)}
+
+  .profit-row{display:flex;justify-content:space-between;align-items:center;padding-top:10px;margin-top:10px;border-top:1px dashed var(--border);}
+  .profit-lbl{font-size:12px;color:var(--text-muted)}
+  .profit-val{font-weight:700;color:var(--sales);font-size:16px}
+
+  .bar-container{height:4px;background:#334155;border-radius:2px;margin-top:8px;overflow:hidden;position:relative}
+  .bar-fill{height:100%;background:var(--cost);}
+
+  .tech-section{padding:16px;flex-grow:1;}
+  .tech-title{font-size:11px;text-transform:uppercase;font-weight:700;color:var(--text-muted);margin-bottom:8px}
+  .tech-list{font-size:13px;color:var(--text-muted);list-style:none; line-height:1.6}
+  .tech-list li::before {content:"• ";color:var(--border)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="head-content">
+    <div class="brand">Grey Corner <span>// ANALYTICS</span> <div class="brand-badge">MANAGER</div></div>
+  </div>
+</header>
+
+<nav><div class="tabs" id="tabs"></div></nav>
+
+<div class="container">
+  <main id="main">Chargement en cours...</main>
+</div>
+
+<script>
+// --- SYSTEME DE DETECTION D'ERREUR ---
+window.onerror = function(message, source, lineno, colno, error) {
+    alert("ERREUR CRITIQUE :\n" + message + "\nLigne : " + lineno);
+};
+
+// --- 1. BASE DE DONNÉES PRIX ---
+const EXCEL_PRICES = [
+  {name:"EMINCE DE POULET", cost:31.75, price:80, gain:40.3},
+  {name:"BROCHETTES DE POULET", cost:21.14, price:80, gain:73.6},
+  {name:"SANDWICH FRUIT DE MER", cost:24.50, price:55, gain:55.4},
+  {name:"SANDWICH THON", cost:20.58, price:40, gain:48.5},
+  {name:"PIZZA VIGETARIENNE", cost:19.75, price:60, gain:67.1},
+  {name:"SANDWICH VIANDE HACHEE", cost:20.14, price:45, gain:55.2},
+  {name:"SANDWICH POULET", cost:17.94, price:45, gain:60.1},
+  {name:"SANDWICH POULET CRUNCHY", cost:19.69, price:55, gain:64.2},
+  {name:"SANDWICH CHEESE STEAK", cost:26.92, price:55, gain:51.1},
+  {name:"CHEESE BURGER", cost:20.54, price:45, gain:54.3},
+  {name:"AVOCADO FORESTIER", cost:21.09, price:45, gain:53.1},
+  {name:"EGG BURGER", cost:22.59, price:50, gain:54.8},
+  {name:"BURGER ROYAL", cost:29.29, price:65, gain:54.9},
+  {name:"BURGER GAMBAS", cost:21.54, price:65, gain:66.8},
+  {name:"BIG BURGER", cost:30.54, price:55, gain:44.5},
+  {name:"PANINI CHARCUTERIE", cost:16.85, price:40, gain:57.9},
+  {name:"PANINI POULET", cost:14.35, price:40, gain:64.1},
+  {name:"PANINI VIANDE HACHEE", cost:20.85, price:45, gain:53.6},
+  {name:"PANINI GOURMAND", cost:20.85, price:50, gain:58.3},
+  {name:"PANINI FRUIT DE MER", cost:21.15, price:55, gain:61.5},
+  {name:"EMINCE DE BŒUF", cost:36.73, price:90, gain:59.2},
+  {name:"RUMSTEAK", cost:49.57, price:100, gain:50.4},
+  {name:"FILET DE BŒUF", cost:58.57, price:115, gain:49.1},
+  {name:"PAVE DE SAUMON", cost:53.78, price:135, gain:60.2},
+  {name:"ESCALOPE A LA PARMIGIANA", cost:32.60, price:85, gain:61.6},
+  {name:"ESCALOPE A LA MILANAISE", cost:23.70, price:85, gain:72.1},
+  {name:"CORDON BLEU", cost:34.35, price:85, gain:59.6},
+  {name:"BALLOTINE DE POULET", cost:35.40, price:85, gain:58.3},
+  {name:"CERCLE VEGGI", cost:13.66, price:45, gain:69.6},
+  {name:"SALADE RUSSE", cost:17.44, price:50, gain:65.1},
+  {name:"SALADE CESAR", cost:14.25, price:60, gain:76.2},
+  {name:"SALADE QUINOA", cost:20.12, price:65, gain:69.1},
+  {name:"SALADE TERRE MER", cost:18.60, price:75, gain:75.2},
+  {name:"SALADE CAPRESE", cost:27.53, price:75, gain:63.3},
+  {name:"Salade Burrata", cost:41.81, price:80, gain:47.7},
+  {name:"CROQUETTE 5 FROMAGE", cost:13.65, price:45, gain:69.7},
+  {name:"CROUSTILLON GAMBAS", cost:20.25, price:65, gain:68.8},
+  {name:"PIL PIL ESPAGNOL", cost:20.79, price:65, gain:68.0},
+  {name:"CHEESECAKE CHOCOLAT", cost:121.5, price:360, gain:66.2},
+  {name:"PIZZA MARGARITA", cost:14.77, price:50, gain:70.5},
+  {name:"PIZZA VIANDE HACHEE", cost:24.25, price:70, gain:65.3},
+  {name:"PIZZA 4 SAISON", cost:28.95, price:80, gain:63.8},
+  {name:"BURRATA", cost:52.05, price:80, gain:34.9},
+  {name:"PIZZA 5 FROMAGE", cost:33.20, price:70, gain:52.6},
+  {name:"PIZZA REGINA", cost:24.85, price:65, gain:61.8},
+  {name:"POULET SAUCE BLANCHE", cost:25.95, price:75, gain:65.4},
+  {name:"FRUITE DE MER", cost:29.52, price:85, gain:65.3},
+  {name:"SAUMON", cost:31.05, price:90, gain:65.5},
+  {name:"PASTA VEGITARIENNE", cost:35.20, price:55, gain:36.0},
+  {name:"PASTA CARBONARA", cost:31.44, price:65, gain:51.6},
+  {name:"REGATONI RICOTTA", cost:33.92, price:65, gain:47.8},
+  {name:"PASTA POULET CHAMPIGNON", cost:38.12, price:70, gain:45.5},
+  {name:"PASTA FRUIT DE MER", cost:40.83, price:85, gain:51.9},
+  {name:"PASTA SAUMON", cost:43.32, price:95, gain:54.4},
+  {name:"PASTA BOLOGNAISE", cost:39.10, price:65, gain:39.8}
+];
+
+// --- 2. DONNÉES DU SITE ---
+const DATA = [
+  { 
+    category:"ENTRÉES FROIDES", key:"ef",
+    items:[
+      {name:"Salade Veggie", image:"images/entree-veggi2.jpg", tech:["S. Rouge : 100 g","Concombre : 80 g","Tomate Cerise : 70 g","Œufs de Caille : 1 p","Haricot Vert : 60 g","Betterave : 120 g","Carotte : 40 g","Brocoli : 50 g","Radis : 60 g","Thon : 50 g","Sauce Vinaigrette : 200 g","Maïs : 30 g","Poivron : 50 g"]},
+      {name:"Salade Russe", image:"images/entree-russe.jpg", tech:["Pomme de Terre : 70 g","Carotte : 70 g","Poulet : 25 g","Petit Pois : 15 g","Olive Verte : 15 g","Cornichon : 24 g","Œuf de Caille : 1 p","Mayonnaise : 30 g","Thon : 15 g","Maïs : 15 g","Radis : 14 g","Poivron : 10 g","Concombre : 10 g"]},
+      {name:"Salade César", image:"images/entree-caesar.jpg", tech:["Laitue : 100 g","Poulet : 120 g","Croûtons : 30 g","Tomate Cerise : 50 g","Sauce César : 70 g","Parmesan : 25 g"]},
+      {name:"Salade Quinoa", image:"images/entree-quinoa.jpg", tech:["Quinoa : 130 g","Gambas Pané : 40 g","Gambas Poché : 32 g","Fruits : 70 g","Feta : 20 g","Kiwi : 120 g","Vinaigrette : 20 g","Miel : 30 g","Framboise : 17 g"]},
+      {name:"Salade Terre & Mer", image:"images/entree-terremer.jpg", tech:["Tomate Cerise : 25 g","S. Rouge : 25 g","Maïs : 30 g","Gambas Poché : 32 g","Gambas Pané : 20 g","Avocat : 150 g","Sauce Tartare : 30 g","Pomme : 24 g","Moules : 16 g","Agrumes : 15 g"]},
+      {name:"Salade Caprese", image:"images/entree-caprese.jpg", tech:["Tomate : 190 g","Mozzarella : 173 g","S. Rouge : 100 g","Noix : 20 g","Radis : 10 g","Pesto : 24 g"]},
+      {name:"Salade Burrata", image:"images/entree-burrata.jpg", tech:["Burrata : 184 g","Noix : 30 g","Roquette : 25 g","Pesto : 15 g","Balsamique : 10 g","Fruits Rouges : 40 g","Radis : 10 g","Tomate Cerise : 25 g"]}
+    ]
+  },
+  { 
+    category:"ENTRÉES CHAUDES", key:"ec",
+    items:[
+      {name:"CROQUETTES 5 FROMAGES", image:"images/entree-croq5fromage.jpg", tech:["Mozzarella : 50 g","Edam : 25 g","Brie : 15 g","Parmesan : 15 g","Bleu : 16 g","Lait : 250 ml","Farine : 100 g"]},
+      {name:"CROUSTILLON GAMBAS", image:"images/entree-croustillon.jpg", tech:["Gambas panées : 200 g","Purée : 750 g","Radis : 15 g","Parmesan : 14 g","Crème fraîche : 50 g"]},
+      {name:"PIL PIL ESPAGNOL", image:"images/entree-pilpil.jpg", tech:["Gambas : 200 g","Tomate cerise : 60 g","Pesto : 22 g","Huile d’olive : 30 g","Oignon : 60 g","Ail : 10 g","Sauce tomate : 120 g"]}
+    ]
+  },
+  { 
+    category:"PLATS", key:"pl",
+    items:[
+      {name:"BROCHETTES DE POULET", image:"images/plat-brochette.jpg", tech:["Blanc de poulet : 200 g","Sauce barbecue : 30 g","Salade rouge : 50 g","Accompagnements — 2 au choix","Frites : 200 g","Pain : 1 p"]},
+      {name:"EMINCE DE POULET", image:"images/plat-emincepoulet.jpg", tech:["Poulet : 160 g","Champignons : 90 g","Crème fraîche : 100 ml","Demi-glace : 100 ml","Légumes variés : 220 g","Fokacha : 150 g","Frites : 200 g","Pain : 1 p","Huile : 50 ml"]},
+      {name:"BALLOTINE DE POULET", image:"images/plat-ballotine.jpg", tech:["Poulet : 250 g","Épinard : 40 g","Crème fraîche : 70 ml","Parmesan : 20 g","Cheddar : 60 g","Beurre : 30 g","Légumes : 220 g","Frites : 200 g","Pain : 1 p"]},
+      {name:"CORDON BLEU", image:"images/plat-cordonbleu.jpg", tech:["Poulet : 200 g","Gouda : 60 g","Crème fraîche : 70 ml","Moutarde : 10 ml","Parmesan : 20 g","Chapelure : 50 g","Farine : 20 g","Œuf : 1 p","Frites : 200 g","Pain : 1 p"]},
+      {name:"ESCALOPE A LA PARMIGIANA", image:"images/plat-parmigiana.jpg", tech:["Poulet : 180 g","Parmesan : 30 g","Olive noire : 15 g","Crème fraîche : 100 ml","Moutarde : 10 g","Légumes : 220 g","Frites : 200 g","Pain : 1 p","Beurre : 40 g"]},
+      {name:"ESCALOPE A LA MILANAISE", image:"images/plat-milanaise.jpg", tech:["Poulet : 120 g","Chapelure : 50 g","Crème fraîche : 70 ml","Moutarde : 10 g","Parmesan : 30 g","Légumes : 220 g","Frites : 200 g","Pain : 1 p"]},
+      {name:"EMINCE DE BŒUF", image:"images/plat-eminceboeuf.jpg", tech:["Bœuf : 150 g","Champignons : 80 g","Crème fraîche : 70 ml","Demi-glace : 60 ml","Légumes : 220 g","Fokacha : 150 g","Frites : 200 g","Pain : 1 p","Huile : 60 ml"]},
+      {name:"RUMSTEAK", image:"images/plat-rumsteak.jpg", tech:["Faux-filet : 180 g","Beurre : 40 g","Poivre vert : 20 g","Demi-glace : 70 ml","Légumes : 220 g","Fokacha : 150 g","Frites : 200 g","Pain : 1 p"]},
+      {name:"FILET DE BŒUF", image:"images/plat-filet.jpg", tech:["Filet : 180 g","Beurre : 40 g","Poivre vert : 20 g","Demi-glace : 70 ml","Légumes : 220 g","Fokacha : 150 g","Frites : 200 g","Pain : 1 p"]},
+      {name:"PAVÉ DE SAUMON", image:"images/plat-saumon.jpg", tech:["Saumon : 180 g","Crevette : 80 g","Crème fraîche : 70 ml","Parmesan : 20 g","Beurre : 40 g","Légumes : 220 g","Fokacha : 150 g","Frites : 200 g","Pain : 1 p"]},
+      {name:"MENU ENFANT (PLAT)", image:"images/menu-enfant-plat.jpg", tech:["Pasta nature ou Mini pizza + boisson","OU Burger / nuggets + frites + boisson"]}
+    ]
+  },
+  { 
+    category:"BURGERS", key:"bg",
+    items:[
+      {name:"CHEESE BURGER", image:"images/burger-cheese.jpg", tech:["Viande Hachée : 100 g","Cheddar : 20 g","Tomate : 30 g","Laitue : 20 g","Oignon+Cornichon : 45 ml","Sauce Bigy : 30 g","Frites + Sauce : 200 g","Pain : 1 p"]},
+      {name:"AVOCADO FORESTIER", image:"images/burger-avocado.jpg", tech:["Poulet : 120 g","Avocat : 50 g","Tomate/Laitue : 30 g","Œuf : 1 p","Chapelure : 50 g","Cheddar : 20 g","Sauce Bigy : 30 g","Frites+Sauce : 200 g","Pain : 1 p"]},
+      {name:"EGG BURGER", image:"images/burger-eggcheese.jpg", tech:["Viande : 100 g","Œuf : 1 p","Champignon : 30 g","Cheddar : 20 g","Tomate/Laitue : 30 g","Sauce Bigy : 30 g","Frites : 200 g","Pain : 1 p"]},
+      {name:"BIG BURGER", image:"images/burger-big.jpg", tech:["Viande : 2×100 g","Cheddar : 20 g","Tomate/Laitue : 30 g","Sauce du chef : 30 g","Frites : 200 g","Pain : 1 p"]},
+      {name:"BURGER ROYAL", image:"images/burger-royal.jpg", tech:["Viande : 100 g","Poulet pané : 120 g","Œuf : 1 p","Cheddar : 20 g","Oignons caramélisés : 25 g","Laitue/Tomate : 30 g","Sauce spéciale : 30 g","Frites : 200 g","Pain : 1 p"]},
+      {name:"BURGER GAMBAS", image:"images/burger-gambas.jpg", tech:["Gambas : 150 g","Sauce blanche : 40 g","Sauce pesto : 20 g","Cheddar : 20 g","Tomate/Laitue : 30 g","Frites : 200 g","Pain : 1 p"]}
+    ]
+  },
+  { 
+    category:"PANINIS", key:"pa",
+    items:[
+      {name:"PANINI CHARCUTERIE", image:"images/panini-charcuterie.jpg", tech:["Charcuterie : 120 g","Mozzarella : 60 g","Frites+Sauce : 200 g","Sauce Bigy : 30 g","Pain : 1 p"]},
+      {name:"PANINI POULET", image:"images/panini-poulet.jpg", tech:["Poulet : 70 g","Mozzarella : 60 g","Frites+Sauce : 200 g","Sauce Bigy : 30 g","Pain : 1 p"]},
+      {name:"PANINI VIANDE HACHÉE", image:"images/panini-hache.jpg", tech:["Viande : 100 g","Mozzarella : 60 g","Frites+Sauce : 200 g","Sauce Bigy : 30 g","Pain : 1 p"]},
+      {name:"PANINI GOURMAND", image:"images/panini-mixte.jpg", tech:["Viande : 50 g","Poulet : 50 g","Charcuterie : 50 g","Mozzarella : 60 g","Frites+Sauce : 200 g","Sauce Bigy : 30 g","Pain : 1 p"]},
+      {name:"PANINI FRUITS DE MER", image:"images/panini-fruitsmer.jpg", tech:["Crevette : 100 g","Calamar : 50 g","Sauce pesto : 20 g","Mozzarella : 60 g","Frites : 200 g","Sauce Bigy : 30 g","Pain : 1 p"]},
+      {name:"PANINI SAUMON", image:"images/panini-saumon.jpg", tech:["Saumon : 90 g","Sauce pesto : 20 g","Mozzarella : 60 g","Frites : 200 g","Sauce Bigy : 30 g","Pain : 1 p"]}
+    ]
+  },
+  { 
+    category:"SANDWICHS", key:"sw",
+    items:[
+      {name:"FRUITS DE MER", image:"images/sand-fruitsmer.jpg", tech:["Crevette : 125 g","Calamar : 70 g","Sauce Biggy : 40 g","Cheddar : 20 g","Crème fraîche : 60 ml","Sauce fromagère : 20 g","Frites : 200 g","Pain : 1 p"]},
+      {name:"THON", image:"images/sand-thon.jpg", tech:["Thon : 120 g","Tomate : 30 g","Sauce burger : 40 ml","Cheddar : 20 g","Frites : 200 g","Pain : 1 p"]},
+      {name:"POULET", image:"images/sand-poulet.jpg", tech:["Poulet : 120 g","Tomate : 30 g","Sauce burger : 40 ml","Cheddar : 20 g","Frites : 200 g","Pain : 1 p"]},
+      {name:"POULET CRUNCHY", image:"images/sand-crunchy.jpg", tech:["Poulet : 120 g","Œuf : 1 p","Chapelure : 50 g","Tomate : 30 g","Cheddar : 20 g","Frites : 200 g","Pain : 1 p"]},
+      {name:"CHEESE STEAK", image:"images/sand-cheesesteak.jpg", tech:["Filet : 70 g","Demi-glace : 40 ml","Champignon : 50 g","Cheddar : 20 g","Crème fraîche : 40 ml","Frites : 200 g","Pain : 1 p"]},
+      {name:"VIANDE HACHÉE", image:"images/sand-hache.jpg", tech:["Viande : 100 g","Tomate : 30 g","Sauce spéciale : 30 g","Cheddar : 20 g","Frites : 200 g","Pain : 1 p"]}
+    ]
+  },
+  { 
+    category:"PIZZA", key:"pz",
+    items:[
+      {name:"MARGARITA", image:"images/pizza-margherita.jpg", tech:["Pâte : 330 g","Mozzarella : 200 g","Sauce tomate : 100 g","Olives noires : 13 g"]},
+      {name:"THON", image:"images/pizza-thon.jpg", tech:["Pâte : 330 g","Mozzarella : 200 g","Sauce tomate : 100 g","Thon : 100 g","Oignons : 40 g","Olives"]},
+      {name:"VÉGÉTARIENNE", image:"images/pizza-veggie.jpg", tech:["Pâte : 330 g","Mozzarella : 200 g","Sauce tomate : 100 g","Champignons : 60 g","Légumes : 220 g"]},
+      {name:"REGINA", image:"images/pizza-regina.jpg", tech:["Pâte : 330 g","Mozzarella : 200 g","Dinde fumée : 100 g","Champignons : 60 g","Sauce blanche : 100 g"]},
+      {name:"5 FROMAGES", image:"images/pizza-5fromages.jpg", tech:["Pâte : 330 g","Mozzarella : 50 g","Brie : 50 g","Bleu : 40 g","Sauce blanche : 100 g","Parmesan : 20 g","Fromage rouge : 40 g"]},
+      {name:"VIANDE HACHÉE", image:"images/pizza-hache.jpg", tech:["Pâte : 330 g","Mozzarella : 200 g","Sauce tomate : 100 g","Viande : 100 g","Tomate cerise : 40 g"]},
+      {name:"PEPPERONI", image:"images/pizza-pepperoni.jpg", tech:["Pâte : 330 g","Mozzarella : 200 g","Sauce tomate : 100 g","Pepperoni : 40 g"]},
+      {name:"POULET SAUCE BLANCHE", image:"images/pizza-pouletblanche.jpg", tech:["Pâte : 330 g","Mozzarella : 200 g","Poulet : 150 g","Champignon : 60 g","Sauce blanche : 100 g"]},
+      {name:"4 SAISONS", image:"images/pizza-4saisons.jpg", tech:["Pâte : 330 g","Mozzarella : 200 g","Calamar : 40 g","Crevette : 40 g","Viande : 40 g","Poulet : 40 g","Légumes : 60 g","Champignon : 60 g"]},
+      {name:"MOITIÉ MOITIÉ", image:"images/pizza-moitiemoitie.jpg", tech:["Pâte : 330 g","Garnitures 2 moitiés (hors fruits de mer/saumon)"]},
+      {name:"BURRATA", image:"images/pizza-burrata.jpg", tech:["Pâte : 330 g","Mozzarella : 200 g","Sauce tomate : 100 g","Burrata : 35 g","Noix : 30 g","Tomate cerise : 20 g"]},
+      {name:"FRUITS DE MER", image:"images/pizza-fruitsmer.jpg", tech:["Pâte : 330 g","Mozzarella : 200 g","Crevette : 110 g","Calamar : 70 g","Moules : 40 g","Champignon : 60 g","Sauce blanche : 100 g"]},
+      {name:"SAUMON", image:"images/pizza-saumon.jpg", tech:["Pâte : 330 g","Mozzarella : 200 g","Saumon : 90 g","Sauce blanche : 100 g","Câpres : 15 g"]}
+    ]
+  },
+  { 
+    category:"PÂTES", key:"pae",
+    items:[
+      {name:"VÉGÉTARIEN", image:"images/pasta-veg.jpg", tech:["Pâtes : 320 g","Sauce pesto : 70 g","Parmesan : 60 g","Huile d'olive : 60 g","Crème : 100 g","Oignon : 60 g","Tomate cerise : 50 g","Légumes : 150 g"]},
+      {name:"CARBONARA", image:"images/pasta-carbonara.jpg", tech:["Pâtes : 320 g","Jambon de dinde : 80 g","Parmesan : 60 g","Huile : 60 g","Crème : 100 g","Oignon/Ail : 70 g"]},
+      {name:"5 FROMAGE", image:"images/pasta-5fromages.jpg", tech:["Pâtes : 320 g","Brie : 25 g","Parmesan : 25 g","Bleu : 20 g","Mozzarella : 30 g","Edam : 20 g","Huile : 60 g","Crème : 100 g","Oignon/Ail : 70 g"]},
+      {name:"REGATONI RICOTTA", image:"images/pasta-ricotta.jpg", tech:["Pâtes : 320 g","Ricotta : 40 g","Parmesan : 60 g","Huile : 60 g","Crème : 100 g","Pesto : 70 g","Courgette : 100 g","Oignon/Ail : 70 g"]},
+      {name:"BOLOGNAISE", image:"images/pasta-bolognaise.jpg", tech:["Pâtes : 320 g","Viande : 100 g","Parmesan : 60 g","Huile : 60 g","Tomate cerise : 50 g","Pesto : 70 g","Sauce tomate : 80 g","Oignon/Ail : 70 g"]},
+      {name:"POULET CHAMPIGNON", image:"images/pasta-poulet.jpg", tech:["Pâtes : 320 g","Poulet : 80 g","Parmesan : 60 g","Huile : 60 g","Crème : 100 g","Pesto : 70 g","Épinard : 30 g","Champignon : 70 g","Oignon/Ail : 70 g"]},
+      {name:"FRUITS DE MER", image:"images/pasta-fruitsmer.jpg", tech:["Pâtes : 320 g","Crevettes : 105 g","Calamar : 60 g","Moules : 15 g","Parmesan : 60 g","Huile : 60 g","Crème : 100 g","Pesto : 70 g","Oignon/Ail : 70 g"]},
+      {name:"SAUMON", image:"images/pasta-saumon.jpg", tech:["Pâtes : 320 g","Saumon : 90 g","Parmesan : 60 g","Huile : 60 g","Crème : 100 g","Pesto : 70 g","Oignon/Ail : 70 g"]},
+      {name:"SPAGHETTIS NOIRS (suppl.)", image:"images/pasta-noir.jpg", tech:["Supplément pâtes noires à l'encre de seiche"]}
+    ]
+  }
+];
+
+// --- LOGIQUE ---
+
+// CORRECTION DES NOMS (Website -> Excel)
+const NAME_MAPPING = {
+  "Salade Veggie": "CERCLE VEGGI",
+  "Pizza Végétarienne": "PIZZA VIGETARIENNE",
+  "Pasta Végétarienne": "PASTA VEGITARIENNE",
+  "Fruits de Mer": "FRUITE DE MER",
+  "Pasta Rigatoni Ricotta": "PASTA RIGATONI RICOTA",
+  "Regatoni Ricotta": "PASTA RIGATONI RICOTA",
+  "5 Fromages": "PIZZA 5 FROMAGE",
+  "5 Fromage": "PIZZA 5 FROMAGE",
+  "VÉGÉTARIENNE": "PIZZA VIGETARIENNE",
+  "VÉGÉTARIEN": "PASTA VEGITARIENNE"
+};
+
+function normalizeStr(str) {
+  if (!str) return "";
+  return str.toUpperCase()
+            .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+            .replace(/S\b/g, "")
+            .replace(/[^A-Z0-9]/g, "")
+            .trim();
+}
+
+function getPriceData(itemName) {
+  // 1. Correction manuelle
+  if(NAME_MAPPING[itemName]){
+     const mappedName = normalizeStr(NAME_MAPPING[itemName]);
+     const found = EXCEL_PRICES.find(p => normalizeStr(p.name) === mappedName);
+     if(found) return found;
+  }
+  
+  const searchName = normalizeStr(itemName);
+
+  // 2. Recherche directe
+  let found = EXCEL_PRICES.find(p => normalizeStr(p.name) === searchName);
+  if (found) return found;
+
+  // 3. Recherche partielle
+  found = EXCEL_PRICES.find(p => {
+    const pName = normalizeStr(p.name);
+    return searchName.includes(pName) || pName.includes(searchName);
+  });
+  return found || null;
+}
+
+const tabs = document.getElementById('tabs');
+const main = document.getElementById('main');
+
+function createFinancialCard(item){
+  let firstImg = item.image || 'images/placeholder.jpg';
+  const techList = (item.tech||[]).map(x=>`<li>${x}</li>`).join('');
+
+  const priceData = getPriceData(item.name);
+  let financialBlock = '';
+  let barWidth = 0;
+  let netGain = 0;
+
+  if(priceData){
+    let percentCost = (priceData.cost / priceData.price) * 100;
+    barWidth = Math.min(percentCost, 100);
+    netGain = (priceData.price - priceData.cost).toFixed(2);
+    let barColor = percentCost > 35 ? '#f43f5e' : '#10b981';
+
+    financialBlock = `
+      <div class="stats-block">
+        <div class="matrix">
+          <div class="cell"><label>COÛT MAT.</label><val class="c-cost">${priceData.cost.toFixed(2)}</val></div>
+          <div class="cell"><label>PRIX VENTE</label><val class="c-sales">${priceData.price}</val></div>
+          <div class="cell"><label>MARGE %</label><val class="c-gain">${Math.round(priceData.gain)}%</val></div>
+        </div>
+        <div class="profit-row"><span class="profit-lbl">GAIN NET / PLAT</span><span class="profit-val">+${netGain} DH</span></div>
+        <div class="bar-container"><div class="bar-fill" style="width:${barWidth}%; background:${barColor}"></div></div>
+      </div>
+    `;
+  } else {
+    financialBlock = `<div class="stats-block" style="text-align:center;color:#64748b;font-style:italic">Données financières non disponibles</div>`;
+  }
+
+  return `
+    <div class="card">
+      <div class="card-header">
+        <img class="card-img" src="${firstImg}" onerror="this.src='https://placehold.co/400x300?text=No+Image'">
+        <div class="card-title-overlay"><div class="name">${item.name}</div></div>
+      </div>
+      ${financialBlock}
+      <div class="tech-section"><div class="tech-title">Ingrédients</div><ul class="tech-list">${techList}</ul></div>
+    </div>
+  `;
+}
+
+function renderAll(){
+  try {
+    tabs.innerHTML = '';
+    main.innerHTML = '';
+    
+    DATA.forEach(cat=>{
+      const t = document.createElement('a');
+      t.href = `#${cat.key}`;
+      t.className = 'tab';
+      t.textContent = cat.category;
+      tabs.appendChild(t);
+      if(tabs.children.length===1) t.classList.add('active');
+
+      const sec = document.createElement('section');
+      sec.id = cat.key;
+      sec.innerHTML = `<div class="grid">${cat.items.map(it=>createFinancialCard(it)).join('')}</div>`;
+      main.appendChild(sec);
+    });
+
+    // Onglets
+    const allTabs = document.querySelectorAll('.tab');
+    allTabs.forEach(tab=>{
+      tab.addEventListener('click', (e)=>{
+        e.preventDefault();
+        const id = tab.getAttribute('href').slice(1);
+        const target = document.getElementById(id);
+        allTabs.forEach(x=>x.classList.remove('active'));
+        tab.classList.add('active');
+        const y = target.getBoundingClientRect().top + window.scrollY - 130;
+        window.scrollTo({top:y,behavior:'smooth'});
+      });
+    });
+
+  } catch (error) {
+    alert("ERREUR DANS LE CODE : " + error.message);
+  }
+}
+
+// Lancement
+document.addEventListener('DOMContentLoaded', renderAll);
+</script>
+</body>
+</html>
