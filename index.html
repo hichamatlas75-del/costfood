@@ -1,162 +1,138 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Grey Corner — ANALYTIQUE FOOD COST</title>
-
-<style>
-  :root{
-    --bg: #0f172a;
-    --surface: #1e293b;
-    --border: #334155;
-    --text-main: #f1f5f9;
-    --text-muted: #94a3b8;
-    --accent: #38bdf8;
-    --cost: #f43f5e;
-    --profit: #10b981;
-    --sales: #fbbf24;
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Grey Corner — Analytics Food Cost</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f1f5f9;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .glass-header {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+    </style>
+    <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@19.0.0",
+    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
+    "react/": "https://esm.sh/react@^19.2.3/"
   }
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--bg);color:var(--text-main);font-family:'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:15px;line-height:1.5}
-  img{max-width:100%;display:block}
-
-  .container{max-width:1200px;margin:0 auto;padding:20px}
-  
-  header{background:var(--surface);border-bottom:1px solid var(--border);padding:15px 0;position:sticky;top:0;z-index:50;box-shadow:0 4px 12px rgba(0,0,0,0.3)}
-  .head-content{display:flex;align-items:center;justify-content:space-between; max-width:1200px;margin:0 auto;padding:0 20px;}
-  .brand{font-size:20px;font-weight:700;letter-spacing:1px;color:var(--text-main); text-transform:uppercase; display:flex; align-items:center; gap:12px;}
-  .brand span{color:var(--accent);}
-  .brand-badge{background:var(--accent);color:#000;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:800;}
-
-  nav{background:#151e2e;border-bottom:1px solid var(--border);position:sticky;top:61px;z-index:40;overflow-x:auto;white-space:nowrap;padding:5px 0}
-  .tabs{display:flex;justify-content:center;min-width:max-content;padding:0 20px}
-  .tab{padding:12px 16px;color:var(--text-muted);text-decoration:none;font-weight:600;font-size:14px;transition:0.2s;border-bottom:3px solid transparent; cursor: pointer;}
-  .tab:hover{color:#fff}
-  .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
-
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:24px;padding:30px 0}
-
-  .card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;display:flex;flex-direction:column;transition:transform 0.2s, box-shadow 0.2s;}
-  .card:hover{transform:translateY(-3px);box-shadow:0 10px 25px rgba(0,0,0,0.4);border-color:var(--text-muted)}
-
-  .card-header{position:relative;height:160px;}
-  .card-img{width:100%;height:100%;object-fit:cover;opacity:0.9;transition:0.3s;background:#000;}
-  .card:hover .card-img{opacity:1}
-  .card-title-overlay{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top, #0f172a, transparent);padding:60px 16px 12px;}
-  .name{font-size:18px;font-weight:700;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,0.8)}
-
-  .stats-block{padding:16px;background:#161f2e;border-bottom:1px solid var(--border);}
-  
-  /* MODIFICATION ICI : Passage à 4 colonnes pour inclure COST % */
-  .matrix{display:grid;grid-template-columns: 1fr 1fr 1fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
-  
-  .cell{background:var(--surface);padding:10px 2px;text-align:center;display:flex;flex-direction:column;justify-content:center;}
-  .cell label{font-size:9px;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px;letter-spacing:0.5px}
-  .cell val{font-weight:700;font-size:14px;font-family:'Consolas', monospace;}
-  
-  .c-cost{color:var(--cost)}
-  .c-sales{color:var(--text-main)}
-  .c-gain{color:var(--profit)}
-  .c-warning{color:var(--sales)} /* Pour les valeurs moyennes */
-
-  .profit-row{display:flex;justify-content:space-between;align-items:center;padding-top:10px;margin-top:10px;border-top:1px dashed var(--border);}
-  .profit-lbl{font-size:12px;color:var(--text-muted)}
-  .profit-val{font-weight:700;color:var(--sales);font-size:16px}
-
-  .bar-container{height:4px;background:#334155;border-radius:2px;margin-top:8px;overflow:hidden;position:relative}
-  .bar-fill{height:100%;background:var(--cost);}
-
-  .tech-section{padding:16px;flex-grow:1;}
-  .tech-title{font-size:11px;text-transform:uppercase;font-weight:700;color:var(--text-muted);margin-bottom:8px}
-  .tech-list{font-size:13px;color:var(--text-muted);list-style:none; line-height:1.6}
-  .tech-list li::before {content:"• ";color:var(--border)}
-</style>
+}
+</script>
 </head>
 <body>
+    <div id="root"></div>
 
-<header>
-  <div class="head-content">
-    <div class="brand">Grey Corner <span>// ANALYTICS</span> <div class="brand-badge">V2.0</div></div>
-  </div>
-</header>
+    <script type="module">
+        import React, { useState, useMemo } from 'react';
+        import ReactDOM from 'react-dom/client';
 
-<nav><div class="tabs" id="tabs"></div></nav>
+        // --- CONSTANTS & DATA ---
+        const EXCEL_PRICES = [
+          {name:"EMINCE DE POULET", cost:31.75, price:80, gain:40.3},
+          {name:"BROCHETTES DE POULET", cost:21.14, price:80, gain:73.6},
+          {name:"SANDWICH FRUIT DE MER", cost:24.50, price:55, gain:55.4},
+          {name:"SANDWICH THON", cost:20.58, price:40, gain:48.5},
+          {name:"PIZZA VIGETARIENNE", cost:19.75, price:60, gain:67.1},
+          {name:"SANDWICH VIANDE HACHEE", cost:20.14, price:45, gain:55.2},
+          {name:"SANDWICH POULET", cost:17.94, price:45, gain:60.1},
+          {name:"SANDWICH POULET CRUNCHY", cost:19.69, price:55, gain:64.2},
+          {name:"SANDWICH CHEESE STEAK", cost:26.92, price:55, gain:51.1},
+          {name:"CHEESE BURGER", cost:20.54, price:45, gain:54.3},
+          {name:"AVOCADO FORESTIER", cost:21.09, price:45, gain:53.1},
+          {name:"EGG BURGER", cost:22.59, price:50, gain:54.8},
+          {name:"BURGER ROYAL", cost:29.29, price:65, gain:54.9},
+          {name:"BURGER GAMBAS", cost:21.54, price:65, gain:66.8},
+          {name:"BIG BURGER", cost:30.54, price:55, gain:44.5},
+          {name:"PANINI CHARCUTERIE", cost:16.85, price:40, gain:57.9},
+          {name:"PANINI POULET", cost:14.35, price:40, gain:64.1},
+          {name:"PANINI VIANDE HACHEE", cost:20.85, price:45, gain:53.6},
+          {name:"PANINI GOURMAND", cost:20.85, price:50, gain:58.3},
+          {name:"PANINI FRUIT DE MER", cost:21.15, price:55, gain:61.5},
+          {name:"EMINCE DE BŒUF", cost:36.73, price:90, gain:59.2},
+          {name:"RUMSTEAK", cost:49.57, price:100, gain:50.4},
+          {name:"FILET DE BŒUF", cost:58.57, price:115, gain:49.1},
+          {name:"PAVE DE SAUMON", cost:53.78, price:135, gain:60.2},
+          {name:"ESCALOPE A LA PARMIGIANA", cost:32.60, price:85, gain:61.6},
+          {name:"ESCALOPE A LA MILANAISE", cost:23.70, price:85, gain:72.1},
+          {name:"CORDON BLEU", cost:34.35, price:85, gain:59.6},
+          {name:"BALLOTINE DE POULET", cost:35.40, price:85, gain:58.3},
+          {name:"CERCLE VEGGI", cost:13.66, price:45, gain:69.6},
+          {name:"SALADE RUSSE", cost:17.44, price:50, gain:74.83},
+          {name:"SALADE CESAR", cost:15.72, price:60, gain:76.2},
+          {name:"SALADE QUINOA", cost:23.78, price:65, gain:63.41},
+          {name:"SALADE TERRE MER", cost:23.92, price:75, gain:68.2},
+          {name:"SALADE CAPRESE", cost:29.82, price:75, gain:60.24},
+          {name:"Salade Burrata", cost:42.05, price:80, gain:47.43},
+          {name:"CROQUETTE 5 FROMAGE", cost:13.65, price:45, gain:69.7},
+          {name:"CROUSTILLON GAMBAS", cost:25.55, price:65, gain:60.69},
+          {name:"PIL PIL ESPAGNOL", cost:24.47, price:68, gain:62.35},
+          {name:"CHEESECAKE CHOCOLAT", cost:121.5, price:360, gain:66.2},
+          {name:"PIZZA MARGARITA", cost:14.77, price:50, gain:70.5},
+          {name:"PIZZA VIANDE HACHEE", cost:24.25, price:70, gain:65.3},
+          {name:"PIZZA 4 SAISON", cost:28.95, price:80, gain:63.8},
+          {name:"BURRATA", cost:52.05, price:80, gain:34.9},
+          {name:"PIZZA 5 FROMAGE", cost:33.20, price:70, gain:52.6},
+          {name:"PIZZA REGINA", cost:24.85, price:65, gain:61.8},
+          {name:"POULET SAUCE BLANCHE", cost:25.95, price:75, gain:65.4},
+          {name:"FRUITE DE MER", cost:29.52, price:85, gain:65.3},
+          {name:"SAUMON", cost:31.05, price:90, gain:65.5},
+          {name:"PASTA VEGITARIENNE", cost:35.20, price:55, gain:36.0},
+          {name:"PASTA CARBONARA", cost:31.44, price:65, gain:51.6},
+          {name:"REGATONI RICOTTA", cost:33.92, price:65, gain:47.8},
+          {name:"PASTA POULET CHAMPIGNON", cost:38.12, price:70, gain:45.5},
+          {name:"PASTA FRUIT DE MER", cost:40.83, price:85, gain:51.9},
+          {name:"PASTA SAUMON", cost:43.32, price:95, gain:54.4},
+          {name:"PASTA BOLOGNAISE", cost:39.10, price:65, gain:39.8},
+          {name:"LASAGNE_BOLOGNAISE", cost:38.50, price:68, gain:29.5},
+          {name:"LASAGNE_POULET", cost:33.50, price:62, gain:28.5},
+          {name:"LASAGNE_FRUIT DE MER", cost:27, price:78, gain:50.5}
+        ];
 
-<div class="container">
-  <main id="main">Chargement en cours...</main>
-</div>
+        const NAME_MAPPING = {
+          "Salade Veggie": "CERCLE VEGGI",
+          "VÉGÉTARIENNE": "PIZZA VIGETARIENNE",
+          "VÉGÉTARIEN": "PASTA VEGITARIENNE",
+          "FRUITS DE MER": "FRUITE DE MER",
+          "Regatoni Ricotta": "REGATONI RICOTTA",
+          "5 FROMAGE": "PIZZA 5 FROMAGE",
+          "CARBONARA": "PASTA CARBONARA",
+          "BOLOGNAISE": "PASTA BOLOGNAISE",
+          "POULET CHAMPIGNON": "PASTA POULET CHAMPIGNON",
+          "FRUIT DE MER": "PASTA FRUIT DE MER",
+          "SAUMON": "PASTA SAUMON"
+        };
 
-<script>
-// --- SYSTEME DE DETECTION D'ERREUR ---
-window.onerror = function(message, source, lineno, colno, error) {
-    console.error(message);
-};
-
-// --- 1. BASE DE DONNÉES PRIX (MISE À JOUR) ---
-const EXCEL_PRICES = [
-  {name:"EMINCE DE POULET", cost:31.75, price:80, gain:40.3},
-  {name:"BROCHETTES DE POULET", cost:21.14, price:80, gain:73.6},
-  {name:"SANDWICH FRUIT DE MER", cost:24.50, price:55, gain:55.4},
-  {name:"SANDWICH THON", cost:20.58, price:40, gain:48.5},
-  {name:"PIZZA VIGETARIENNE", cost:19.75, price:60, gain:67.1},
-  {name:"SANDWICH VIANDE HACHEE", cost:20.14, price:45, gain:55.2},
-  {name:"SANDWICH POULET", cost:17.94, price:45, gain:60.1},
-  {name:"SANDWICH POULET CRUNCHY", cost:19.69, price:55, gain:64.2},
-  {name:"SANDWICH CHEESE STEAK", cost:26.92, price:55, gain:51.1},
-  {name:"CHEESE BURGER", cost:20.54, price:45, gain:54.3},
-  {name:"AVOCADO FORESTIER", cost:21.09, price:45, gain:53.1},
-  {name:"EGG BURGER", cost:22.59, price:50, gain:54.8},
-  {name:"BURGER ROYAL", cost:29.29, price:65, gain:54.9},
-  {name:"BURGER GAMBAS", cost:21.54, price:65, gain:66.8},
-  {name:"BIG BURGER", cost:30.54, price:55, gain:44.5},
-  {name:"PANINI CHARCUTERIE", cost:16.85, price:40, gain:57.9},
-  {name:"PANINI POULET", cost:14.35, price:40, gain:64.1},
-  {name:"PANINI VIANDE HACHEE", cost:20.85, price:45, gain:53.6},
-  {name:"PANINI GOURMAND", cost:20.85, price:50, gain:58.3},
-  {name:"PANINI FRUIT DE MER", cost:21.15, price:55, gain:61.5},
-  {name:"EMINCE DE BŒUF", cost:36.73, price:90, gain:59.2},
-  {name:"RUMSTEAK", cost:49.57, price:100, gain:50.4},
-  {name:"FILET DE BŒUF", cost:58.57, price:115, gain:49.1},
-  {name:"PAVE DE SAUMON", cost:53.78, price:135, gain:60.2},
-  {name:"ESCALOPE A LA PARMIGIANA", cost:32.60, price:85, gain:61.6},
-  {name:"ESCALOPE A LA MILANAISE", cost:23.70, price:85, gain:72.1},
-  {name:"CORDON BLEU", cost:34.35, price:85, gain:59.6},
-  {name:"BALLOTINE DE POULET", cost:35.40, price:85, gain:58.3},
-  {name:"CERCLE VEGGI", cost:13.66, price:45, gain:69.6},
-  {name:"SALADE RUSSE", cost:17.44, price:50, gain:74.83},
-  {name:"SALADE CESAR", cost:15.72, price:60, gain:76.2},
-  {name:"SALADE QUINOA", cost:23.78, price:65, gain:63.41},
-  {name:"SALADE TERRE MER", cost:23.92, price:75, gain:68.2},
-  {name:"SALADE CAPRESE", cost:29.82, price:75, gain:60.24},
-  {name:"Salade Burrata", cost:42.05, price:80, gain:47.43},
-  {name:"CROQUETTE 5 FROMAGE", cost:13.65, price:45, gain:69.7},
-  {name:"CROUSTILLON GAMBAS", cost:25.55, price:65, gain:60.69},
-  {name:"PIL PIL ESPAGNOL", cost:24.47, price:68, gain:62.35},
-  {name:"CHEESECAKE CHOCOLAT", cost:121.5, price:360, gain:66.2},
-  {name:"PIZZA MARGARITA", cost:14.77, price:50, gain:70.5},
-  {name:"PIZZA VIANDE HACHEE", cost:24.25, price:70, gain:65.3},
-  {name:"PIZZA 4 SAISON", cost:28.95, price:80, gain:63.8},
-  {name:"BURRATA", cost:52.05, price:80, gain:34.9},
-  {name:"PIZZA 5 FROMAGE", cost:33.20, price:70, gain:52.6},
-  {name:"PIZZA REGINA", cost:24.85, price:65, gain:61.8},
-  {name:"POULET SAUCE BLANCHE", cost:25.95, price:75, gain:65.4},
-  {name:"FRUITE DE MER", cost:29.52, price:85, gain:65.3},
-  {name:"SAUMON", cost:31.05, price:90, gain:65.5},
-  {name:"PASTA VEGITARIENNE", cost:35.20, price:55, gain:36.0},
-  {name:"PASTA CARBONARA", cost:31.44, price:65, gain:51.6},
-  {name:"REGATONI RICOTTA", cost:33.92, price:65, gain:47.8},
-  {name:"PASTA POULET CHAMPIGNON", cost:38.12, price:70, gain:45.5},
-  {name:"PASTA FRUIT DE MER", cost:40.83, price:85, gain:51.9},
-  {name:"PASTA SAUMON", cost:43.32, price:95, gain:54.4},
-  {name:"PASTA BOLOGNAISE", cost:39.10, price:65, gain:39.8},
-  {name:"LASAGNE_BOLOGNAISE", cost:38.50, price:68, gain:29.5},
-  {name:"LASAGNE_POULET", cost:33.50, price:62, gain:28.5},
-  {name:"LASAGNE_FRUIT DE MER", cost:27, price:78, gain:50.5}
-];
-
-// --- 2. DONNÉES DU SITE ---
-const DATA = [
+       const DATA = [
   { 
     category:"ENTRÉES FROIDES", key:"ef",
     items:[
@@ -269,151 +245,199 @@ const DATA = [
   }
 ];
 
-// --- LOGIQUE ---
 
-// CORRECTION DES NOMS (Website -> Excel)
-const NAME_MAPPING = {
-  "Salade Veggie": "CERCLE VEGGI",
-  "Pizza Végétarienne": "PIZZA VIGETARIENNE",
-  "Pasta Végétarienne": "PASTA VEGITARIENNE",
-  "Fruits de Mer": "FRUITE DE MER",
-  "Pasta Rigatoni Ricotta": "PASTA RIGATONI RICOTA",
-  "Regatoni Ricotta": "PASTA RIGATONI RICOTA",
-  "5 Fromages": "PIZZA 5 FROMAGE",
-  "5 Fromage": "PIZZA 5 FROMAGE",
-  "VÉGÉTARIENNE": "PIZZA VIGETARIENNE",
-  "VÉGÉTARIEN": "PASTA VEGITARIENNE",
-  "Fruits de Mer": "FRUITE DE MER"
-};
-
-function normalizeStr(str) {
-  if (!str) return "";
-  return str.toUpperCase()
+        // --- UTILS ---
+        const normalizeStr = (str) => {
+          if (!str) return "";
+          return str.toUpperCase()
             .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-            .replace(/S\b/g, "")
+            .replace(/\bS\b/g, "")
             .replace(/[^A-Z0-9]/g, "")
             .trim();
-}
+        };
 
-function getPriceData(itemName) {
-  // 1. Correction manuelle
-  if(NAME_MAPPING[itemName]){
-     const mappedName = normalizeStr(NAME_MAPPING[itemName]);
-     const found = EXCEL_PRICES.find(p => normalizeStr(p.name) === mappedName);
-     if(found) return found;
-  }
-  
-  const searchName = normalizeStr(itemName);
+        const getPriceData = (itemName) => {
+          let matchedPrice = null;
 
-  // 2. Recherche directe
-  let found = EXCEL_PRICES.find(p => normalizeStr(p.name) === searchName);
-  if (found) return found;
+          if (NAME_MAPPING[itemName]) {
+            const mappedName = normalizeStr(NAME_MAPPING[itemName]);
+            matchedPrice = EXCEL_PRICES.find(p => normalizeStr(p.name) === mappedName) || null;
+          }
 
-  // 3. Recherche partielle
-  found = EXCEL_PRICES.find(p => {
-    const pName = normalizeStr(p.name);
-    return searchName.includes(pName) || pName.includes(searchName);
-  });
-  return found || null;
-}
+          const searchName = normalizeStr(itemName);
 
-const tabs = document.getElementById('tabs');
-const main = document.getElementById('main');
+          if (!matchedPrice) {
+            matchedPrice = EXCEL_PRICES.find(p => normalizeStr(p.name) === searchName) || null;
+          }
 
-function createFinancialCard(item){
-  let firstImg = item.image || 'images/placeholder.jpg';
-  const techList = (item.tech||[]).map(x=>`<li>${x}</li>`).join('');
+          if (!matchedPrice) {
+            matchedPrice = EXCEL_PRICES.find(p => {
+              const pName = normalizeStr(p.name);
+              return searchName.includes(pName) || pName.includes(searchName);
+            }) || null;
+          }
 
-  const priceData = getPriceData(item.name);
-  let financialBlock = '';
-  let barWidth = 0;
-  let netGain = 0;
+          if (!matchedPrice) {
+            return { cost: 0, price: 0, marginPercent: 0, costPercent: 0, netGain: 0, isAvailable: false };
+          }
 
-  if(priceData){
-    let percentCost = (priceData.cost / priceData.price) * 100;
-    barWidth = Math.min(percentCost, 100);
-    netGain = (priceData.price - priceData.cost).toFixed(2);
-    
-    let barColor = percentCost > 35 ? '#f43f5e' : '#10b981';
-    let costClass = percentCost > 35 ? 'c-cost' : 'c-gain'; // Rouge si > 35%, Vert sinon
+          const costPercent = (matchedPrice.cost / matchedPrice.price) * 100;
+          return {
+            cost: matchedPrice.cost,
+            price: matchedPrice.price,
+            marginPercent: matchedPrice.gain,
+            costPercent,
+            netGain: matchedPrice.price - matchedPrice.cost,
+            isAvailable: true
+          };
+        };
 
-    financialBlock = `
-      <div class="stats-block">
-        <div class="matrix">
-          <div class="cell"><label>COÛT</label><val class="c-cost">${priceData.cost.toFixed(2)}</val></div>
-          <div class="cell"><label>PRIX</label><val class="c-sales">${priceData.price}</val></div>
-          <div class="cell"><label>MARGE %</label><val class="c-gain">${Math.round(priceData.gain)}%</val></div>
-          <div class="cell"><label>COST %</label><val class="${costClass}">${percentCost.toFixed(1)}%</val></div>
-        </div>
-        <div class="profit-row"><span class="profit-lbl">GAIN NET / PLAT</span><span class="profit-val">+${netGain} DH</span></div>
-        <div class="bar-container"><div class="bar-fill" style="width:${barWidth}%; background:${barColor}"></div></div>
-      </div>
-    `;
-  } else {
-    financialBlock = `<div class="stats-block" style="text-align:center;color:#64748b;font-style:italic">Données financières non disponibles</div>`;
-  }
+        // --- COMPONENTS ---
+        const FoodCard = ({ item }) => {
+          const stats = getPriceData(item.name);
+          const isHighCost = stats.costPercent > 35;
+          const costColorClass = isHighCost ? 'text-rose-500' : 'text-emerald-500';
+          const barColorClass = isHighCost ? 'bg-rose-500' : 'bg-emerald-500';
 
-  return `
-    <div class="card">
-      <div class="card-header">
-        <img class="card-img" src="${firstImg}" onerror="this.src='https://placehold.co/400x300?text=No+Image'">
-        <div class="card-title-overlay"><div class="name">${item.name}</div></div>
-      </div>
-      ${financialBlock}
-      <div class="tech-section"><div class="tech-title">Ingrédients</div><ul class="tech-list">${techList}</ul></div>
-    </div>
-  `;
-}
+          return React.createElement('div', {
+            className: "bg-[#1e293b] border border-[#334155] rounded-xl overflow-hidden flex flex-col transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/50 group"
+          }, 
+            React.createElement('div', { className: "relative h-44 overflow-hidden" },
+              React.createElement('img', {
+                src: item.image,
+                alt: item.name,
+                className: "w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300",
+                onError: (e) => { e.target.src = "https://placehold.co/400x300?text=No+Image"; }
+              }),
+              React.createElement('div', { className: "absolute inset-0 bg-gradient-to-t from-[#0f172a] via-transparent to-transparent opacity-90" }),
+              React.createElement('div', { className: "absolute bottom-3 left-4 right-4" },
+                React.createElement('h3', { className: "text-lg font-bold text-white drop-shadow-lg leading-tight" }, item.name.replace(/_/g, ' '))
+              )
+            ),
+            React.createElement('div', { className: "p-4 bg-[#161f2e] border-b border-[#334155]" },
+              stats.isAvailable ? React.createElement(React.Fragment, null,
+                React.createElement('div', { className: "grid grid-cols-4 gap-px bg-[#334155] border border-[#334155] rounded-lg overflow-hidden" },
+                  React.createElement('div', { className: "bg-[#1e293b] p-2 text-center flex flex-col justify-center" },
+                    React.createElement('span', { className: "text-[9px] uppercase text-slate-400 mb-1 tracking-wider font-semibold" }, "Coût"),
+                    React.createElement('span', { className: "text-rose-500 font-bold text-sm font-mono" }, stats.cost.toFixed(2))
+                  ),
+                  React.createElement('div', { className: "bg-[#1e293b] p-2 text-center flex flex-col justify-center" },
+                    React.createElement('span', { className: "text-[9px] uppercase text-slate-400 mb-1 tracking-wider font-semibold" }, "Prix"),
+                    React.createElement('span', { className: "text-white font-bold text-sm font-mono" }, stats.price.toFixed(1))
+                  ),
+                  React.createElement('div', { className: "bg-[#1e293b] p-2 text-center flex flex-col justify-center" },
+                    React.createElement('span', { className: "text-[9px] uppercase text-slate-400 mb-1 tracking-wider font-semibold" }, "Marge %"),
+                    React.createElement('span', { className: "text-emerald-400 font-bold text-sm font-mono" }, Math.round(stats.marginPercent), "%")
+                  ),
+                  React.createElement('div', { className: "bg-[#1e293b] p-2 text-center flex flex-col justify-center" },
+                    React.createElement('span', { className: "text-[9px] uppercase text-slate-400 mb-1 tracking-wider font-semibold" }, "Cost %"),
+                    React.createElement('span', { className: `${costColorClass} font-bold text-sm font-mono` }, stats.costPercent.toFixed(1), "%")
+                  )
+                ),
+                React.createElement('div', { className: "flex justify-between items-center mt-3 pt-3 border-t border-dashed border-[#334155]" },
+                  React.createElement('span', { className: "text-xs text-slate-400 font-medium" }, "GAIN NET / PLAT"),
+                  React.createElement('span', { className: "text-amber-400 font-extrabold text-lg" }, "+", stats.netGain.toFixed(2), " ", React.createElement('small', { className: "text-[10px]" }, "DH"))
+                ),
+                React.createElement('div', { className: "h-1.5 bg-[#334155] rounded-full mt-3 overflow-hidden" },
+                  React.createElement('div', {
+                    className: `h-full ${barColorClass} transition-all duration-500 ease-out`,
+                    style: { width: `${Math.min(stats.costPercent, 100)}%` }
+                  })
+                )
+              ) : React.createElement('div', { className: "py-8 text-center text-slate-500 italic text-sm" }, "Données financières non disponibles")
+            ),
+            React.createElement('div', { className: "p-4 flex-grow" },
+              React.createElement('h4', { className: "text-[11px] uppercase font-bold text-slate-400 mb-2 tracking-widest" }, "Ingrédients"),
+              React.createElement('ul', { className: "text-sm text-slate-400 space-y-1" },
+                item.tech.map((ing, idx) => React.createElement('li', { key: idx, className: "flex items-start" },
+                  React.createElement('span', { className: "text-[#334155] mr-2" }, "•"),
+                  React.createElement('span', { className: "leading-tight" }, ing)
+                ))
+              )
+            )
+          );
+        };
 
-function renderAll(){
-  try {
-    tabs.innerHTML = '';
-    main.innerHTML = '';
-    
-    DATA.forEach(cat=>{
-      const t = document.createElement('a');
-      t.href = `#${cat.key}`;
-      t.className = 'tab';
-      t.textContent = cat.category;
-      tabs.appendChild(t);
-      if(tabs.children.length===1) t.classList.add('active');
+        const App = () => {
+          const [activeTab, setActiveTab] = useState(DATA[0].key);
+          const [searchQuery, setSearchQuery] = useState('');
 
-      const sec = document.createElement('section');
-      sec.id = cat.key;
-      sec.innerHTML = `<div class="grid">${cat.items.map(it=>createFinancialCard(it)).join('')}</div>`;
-      main.appendChild(sec);
-    });
+          const currentCategory = useMemo(() => DATA.find(cat => cat.key === activeTab), [activeTab]);
 
-    // Onglets
-    const allTabs = document.querySelectorAll('.tab');
-    allTabs.forEach(tab=>{
-      tab.addEventListener('click', (e)=>{
-        e.preventDefault();
-        const id = tab.getAttribute('href').slice(1);
-        const target = document.getElementById(id);
-        allTabs.forEach(x=>x.classList.remove('active'));
-        tab.classList.add('active');
-        const y = target.getBoundingClientRect().top + window.scrollY - 130;
-        window.scrollTo({top:y,behavior:'smooth'});
-      });
-    });
+          const filteredItems = useMemo(() => {
+            if (!currentCategory) return [];
+            if (!searchQuery) return currentCategory.items;
+            return currentCategory.items.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
+          }, [currentCategory, searchQuery]);
 
-  } catch (error) {
-    alert("ERREUR DANS LE CODE : " + error.message);
-  }
-}
+          return React.createElement('div', { className: "min-h-screen bg-[#0f172a] text-slate-100 flex flex-col" },
+            React.createElement('header', { className: "sticky top-0 z-50 glass-header border-b border-[#334155] shadow-xl" },
+              React.createElement('div', { className: "max-w-7xl mx-auto px-4 h-16 flex items-center justify-between" },
+                React.createElement('div', { className: "flex items-center gap-3" },
+                  React.createElement('h1', { className: "text-xl font-black tracking-tighter text-white" }, "GREY CORNER ", React.createElement('span', { className: "text-sky-400 font-light" }, "// ANALYTICS")),
+                  React.createElement('span', { className: "bg-sky-500 text-[#0f172a] px-2 py-0.5 rounded text-[10px] font-black uppercase" }, "V2.2")
+                ),
+                React.createElement('div', { className: "relative hidden md:block w-64" },
+                  React.createElement('input', {
+                    type: "text",
+                    placeholder: "Rechercher un plat...",
+                    value: searchQuery,
+                    onChange: (e) => setSearchQuery(e.target.value),
+                    className: "w-full bg-[#0f172a] border border-[#334155] rounded-full py-1.5 px-4 pl-10 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all"
+                  }),
+                  React.createElement('svg', { className: "absolute left-3 top-2 w-4 h-4 text-slate-500", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24" },
+                    React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" })
+                  )
+                )
+              ),
+              React.createElement('nav', { className: "border-t border-[#334155] bg-[#151e2e] overflow-x-auto no-scrollbar" },
+                React.createElement('div', { className: "max-w-7xl mx-auto px-2 flex" },
+                  DATA.map(cat => React.createElement('button', {
+                    key: cat.key,
+                    onClick: () => { setActiveTab(cat.key); setSearchQuery(''); },
+                    className: `px-6 py-4 text-xs font-black whitespace-nowrap tracking-widest transition-all duration-200 border-b-2 uppercase ${activeTab === cat.key ? 'text-sky-400 border-sky-400 bg-sky-400/5' : 'text-slate-500 border-transparent hover:text-white hover:bg-white/5'}`
+                  }, cat.category))
+                )
+              )
+            ),
+            React.createElement('main', { className: "max-w-7xl mx-auto px-4 py-8 w-full flex-grow" },
+              React.createElement('div', { className: "mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4" },
+                React.createElement('div', null,
+                  React.createElement('h2', { className: "text-3xl font-black text-white uppercase tracking-tighter" }, currentCategory?.category),
+                  React.createElement('p', { className: "text-slate-400 text-sm mt-1 font-medium" }, "Analyse complète des marges et décomposition technique.")
+                ),
+                React.createElement('div', { className: "md:hidden" },
+                  React.createElement('input', {
+                    type: "text",
+                    placeholder: "Rechercher...",
+                    value: searchQuery,
+                    onChange: (e) => setSearchQuery(e.target.value),
+                    className: "w-full bg-[#1e293b] border border-[#334155] rounded-xl py-2.5 px-4 text-sm text-slate-200"
+                  })
+                )
+              ),
+              filteredItems.length > 0 ? React.createElement('div', {
+                className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+              }, filteredItems.map((item, idx) => React.createElement(FoodCard, { key: `${item.name}-${idx}`, item: item })))
+              : React.createElement('div', { className: "py-40 text-center" },
+                React.createElement('div', { className: "text-slate-500 text-xl font-semibold tracking-tight" }, `Aucun résultat pour "${searchQuery}"`),
+                React.createElement('button', {
+                  onClick: () => setSearchQuery(''),
+                  className: "mt-6 bg-sky-500/10 text-sky-400 px-6 py-2 rounded-full text-sm font-bold hover:bg-sky-500/20 transition-all"
+                }, "Réinitialiser la recherche")
+              )
+            ),
+            React.createElement('footer', { className: "bg-[#1e293b] border-t border-[#334155] py-8" },
+              React.createElement('div', { className: "max-w-7xl mx-auto px-4 text-center" },
+                React.createElement('div', { className: "text-slate-500 text-[10px] tracking-[0.3em] font-black uppercase mb-2" }, "© 2024 GREY CORNER — FOOD COST INTELLIGENCE"),
+                React.createElement('div', { className: "text-slate-600 text-[9px] font-medium uppercase tracking-widest" }, "Propriété exclusive de la direction Grey Corner")
+              )
+            )
+          );
+        };
 
-// Lancement
-document.addEventListener('DOMContentLoaded', renderAll);
-</script>
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(App));
+    </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
