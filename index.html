@@ -1,423 +1,511 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Grey Corner — Analytics Food Cost</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #0f172a;
-            color: #f1f5f9;
-        }
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #1e293b; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #475569; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .glass-header {
-            background: rgba(30, 41, 59, 0.8);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Grey Corner — Analytics Food Cost</title>
 
-    <script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@19.0.0",
-    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
-    "react/": "https://esm.sh/react@^19.2.3/"
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- ✅ Excel reader (SheetJS) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f1f5f9; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #1e293b; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .glass-header { background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+  </style>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "react": "https://esm.sh/react@19.0.0",
+      "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
+      "react/": "https://esm.sh/react@^19.2.3/"
+    }
   }
-}
-</script>
+  </script>
 </head>
+
 <body>
-    <div id="root"></div>
+  <div id="root"></div>
 
-    <script type="module">
-        import React, { useState, useMemo } from 'react';
-        import ReactDOM from 'react-dom/client';
+  <script type="module">
+    import React, { useState, useMemo, useEffect } from 'react';
+    import ReactDOM from 'react-dom/client';
 
-        // --- CONSTANTS & DATA ---
-        // ✅ SUPPRIMÉ : CROQUETTE 5 FROMAGE
-        // ✅ SUPPRIMÉ : ESCALOPE A LA PARMIGIANA
-        const EXCEL_PRICES = [
-          {name:"EMINCE DE POULET", cost:31.75, price:88, gain:40.3},
-          {name:"BROCHETTES DE POULET", cost:21.14, price:84, gain:73.6},
-          {name:"SANDWICH FRUIT DE MER", cost:24.50, price:65, gain:55.4},
-          {name:"SANDWICH THON", cost:20.58, price:48, gain:48.5},
-          {name:"PIZZA VIGETARIENNE", cost:19.75, price:60, gain:67.1},
-          {name:"SANDWICH VIANDE HACHEE", cost:20.14, price:54, gain:55.2},
-          {name:"SANDWICH POULET", cost:17.94, price:48, gain:60.1},
-          {name:"SANDWICH POULET CRUNCHY", cost:19.69, price:54, gain:64.2},
-          {name:"SANDWICH CHEESE STEAK", cost:26.92, price:64, gain:51.1},
-          {name:"CHEESE BURGER", cost:20.54, price:54, gain:54.3},
-          {name:"AVOCADO FORESTIER", cost:21.09, price:54, gain:53.1},
-          {name:"EGG BURGER", cost:22.59, price:58, gain:54.8},
-          {name:"BURGER ROYAL", cost:29.29, price:68, gain:54.9},
-          {name:"CHICKEN BURGER ", cost:21.54, price:48, gain:66.8},
-          {name:"BIG BURGER", cost:30.54, price:68, gain:44.5},
-          {name:"PANINI CHARCUTERIE", cost:16.85, price:40, gain:57.9},
-          {name:"PANINI POULET", cost:14.35, price:44, gain:64.1},
-          {name:"PANINI VIANDE HACHEE", cost:20.85, price:54, gain:53.6},
-          {name:"PANINI GOURMAND", cost:20.85, price:58, gain:58.3},
-          {name:"PANINI FRUIT DE MER", cost:21.15, price:64, gain:61.5},
-          {name:"EMINCE DE BŒUF", cost:36.73, price:103, gain:59.2},
-          {name:"FILET DE BŒUF", cost:58.57, price:128, gain:49.1},
-          {name:"PAVE DE SAUMON", cost:53.78, price:148, gain:60.2},
-          {name:"ESCALOPE A LA MILANAISE", cost:23.70, price:85, gain:72.1},
-          {name:"BALLOTINE DE POULET", cost:35.40, price:94, gain:58.3},
-          {name:"CERCLE VEGGI", cost:13.66, price:48, gain:69.6},
-          {name:"SALADE RUSSE", cost:17.44, price:54, gain:74.83},
-          {name:"SALADE CESAR", cost:15.72, price:62, gain:76.2},
-          {name:"SALADE QUINOA", cost:23.78, price:68, gain:63.41},
-          {name:"SALADE TERRE MER", cost:23.92, price:75, gain:68.2},
-          {name:"Salade Burrata", cost:42.05, price:88, gain:47.43},
-          {name:"CROUSTILLON GAMBAS", cost:25.55, price:68, gain:60.69},
-          {name:"PIL PIL ESPAGNOL", cost:24.47, price:68, gain:62.35},
-          {name:"CHEESECAKE CHOCOLAT", cost:121.5, price:360, gain:66.2},
-          {name:"PIZZA MARGARITA", cost:14.77, price:50, gain:70.5},
-          {name:"PIZZA VIANDE HACHEE", cost:24.25, price:78, gain:65.3},
-          {name:"PIZZA 4 SAISON", cost:28.95, price:88, gain:63.8},
-          {name:"BURRATA", cost:52.05, price:94, gain:34.9},
-          {name:"PIZZA 5 FROMAGE", cost:33.20, price:82, gain:52.6},
-          {name:"PIZZA REGINA", cost:24.85, price:65, gain:61.8},
-          {name:"POULET SAUCE BLANCHE", cost:25.95, price:75, gain:65.4},
-          {name:"FRUITE DE MER", cost:29.52, price:85, gain:65.3},
-          {name:"SAUMON", cost:31.05, price:90, gain:65.5},
-          {name:"PASTA VEGITARIENNE", cost:35.20, price:60, gain:36.0},
-          {name:"PASTA CARBONARA", cost:31.44, price:68, gain:51.6},
-          {name:"REGATONI RICOTTA", cost:33.92, price:68, gain:47.8},
-          {name:"PASTA POULET CHAMPIGNON", cost:38.12, price:75, gain:45.5},
-          {name:"PASTA FRUIT DE MER", cost:40.83, price:92, gain:51.9},
-          {name:"PASTA SAUMON", cost:43.32, price:98, gain:54.4},
-          {name:"PASTA BOLOGNAISE", cost:39.10, price:82, gain:39.8},
-          {name:"LASAGNE_BOLOGNAISE", cost:27.50, price:68, gain:39.5},
-          {name:"LASAGNE_POULET", cost:21.50, price:58, gain:39.5},
-          {name:"LASAGNE_FRUIT DE MER", cost:27, price:78, gain:50.5},
-          {name:"SALADE TARTARE SAUMON", cost:31.5, price:88, gain:56}
-        ];
+    // ============================
+    // EXCEL → PRICES (AUTO)
+    // ============================
+    const pick = (obj, keys) => {
+      const lower = Object.fromEntries(Object.entries(obj).map(([k,v]) => [String(k).toLowerCase(), v]));
+      for (const k of keys) {
+        const v = lower[k];
+        if (v !== undefined && v !== null && String(v).trim() !== "") return v;
+      }
+      return null;
+    };
 
-        const NAME_MAPPING = {
-          "Salade Veggie": "CERCLE VEGGI",
-          "VÉGÉTARIENNE": "PIZZA VIGETARIENNE",
-          "VÉGÉTARIEN": "PASTA VEGITARIENNE",
-          "FRUITS DE MER": "FRUITE DE MER",
-          "Regatoni Ricotta": "REGATONI RICOTTA",
-          "5 FROMAGE": "PIZZA 5 FROMAGE",
-          "CARBONARA": "PASTA CARBONARA",
-          "BOLOGNAISE": "PASTA BOLOGNAISE",
-          "POULET CHAMPIGNON": "PASTA POULET CHAMPIGNON",
-          "FRUIT DE MER": "PASTA FRUIT DE MER",
-          "Salade Tartare saumon": "SALADE TARTARE SAUMON",
-          "SAUMON": "PASTA SAUMON"
-        };
+    const toNumber = (v) => {
+      if (v === null || v === undefined) return NaN;
+      if (typeof v === "number") return v;
+      const s = String(v).replace(/\s/g, "").replace(",", ".").replace(/[^\d.\-]/g, "");
+      const n = Number(s);
+      return Number.isFinite(n) ? n : NaN;
+    };
 
-        // ✅ SUPPRIMÉ de DATA :
-        // - CROQUETTES 5 FROMAGES (entrées chaudes)
-        // - CORDON BLEU (plats)
-        // - ESCALOPE A LA PARMIGIANA (plats)
-        // - RUMSTEAK (plats)
-        // - SALADE CAPRESE : pas trouvé dans ton code initial
-        const DATA = [
-          {
-            category:"ENTRÉES FROIDES", key:"ef",
-            items:[
-              {name:"Salade Veggie", image:"entree-veggi.jpg", tech:["S. Rouge : 100 g","Concombre : 80 g","Tomate Cerise : 70 g","Œufs de Caille : 1 p","Haricot Vert : 60 g","Betterave : 120 g","Carotte : 40 g","Brocoli : 50 g","Radis : 60 g","Thon : 50 g","Sauce Vinaigrette : 200 g","Maïs : 30 g","Poivron : 50 g"]},
-              {name:"Salade Russe", image:"images/entree-russe.jpg", tech:["Pomme de Terre : 70 g","Carotte : 70 g","Poulet : 25 g","Petit Pois : 15 g","Olive Verte : 15 g","Cornichon : 24 g","Œuf de Caille : 1 p","Mayonnaise : 30 g","Thon : 15 g","Maïs : 15 g","Radis : 14 g","Poivron : 10 g","Concombre : 10 g"]},
-              {name:"Salade César", image:"images/entree-caesar.jpg", tech:["Laitue : 100 g","Poulet : 120 g","Croûtons : 30 g","Tomate Cerise : 50 g","Sauce César : 70 g","Parmesan : 25 g"]},
-              {name:"Salade Quinoa", image:"images/entree-quinoa.jpg", tech:["Quinoa : 130 g","Gambas Pané : 40 g","Gambas Poché : 32 g","Fruits : 70 g","Feta : 20 g","Kiwi : 120 g","Vinaigrette : 20 g","Miel : 30 g","Framboise : 17 g"]},
-              {name:"Salade Terre & Mer", image:"images/entree-terremer.jpg", tech:["Tomate Cerise : 25 g","S. Rouge : 25 g","Maïs : 30 g","Gambas Poché : 32 g","Gambas Pané : 20 g","Avocat : 150 g","Sauce Tartare : 30 g","Pomme : 24 g","Moules : 16 g","Agrumes : 15 g"]},
-              {name:"Salade Tartare saumon", image:"images/entree-tartare.jpeg", tech:["saumon frais : 90 g","saumon fumee: 25 g","AVOCAT : 300 g","SAUCE TARTARE : 24 g"]},
-              {name:"Salade Burrata", image:"images/entree-burrata.jpg", tech:["Burrata : 184 g","Noix : 30 g","Roquette : 25 g","Pesto : 15 g","Balsamique : 10 g","Fruits Rouges : 40 g","Radis : 10 g","Tomate Cerise : 25 g"]}
-            ]
-          },
-          {
-            category:"ENTRÉES CHAUDES", key:"ec",
-            items:[
-              {name:"CROUSTILLON GAMBAS", image:"images/entree-croustillon.jpg", tech:["Gambas panées : 200 g","Purée : 750 g","Radis : 15 g","Parmesan : 14 g","Crème fraîche : 50 g"]},
-              {name:"PIL PIL ESPAGNOL", image:"images/entree-pilpil.jpg", tech:["Gambas : 200 g","Tomate cerise : 60 g","Pesto : 22 g","Huile d’olive : 30 g","Oignon : 60 g","Ail : 10 g","Sauce tomate : 120 g"]}
-            ]
-          },
-          {
-            category:"PLATS", key:"pl",
-            items:[
-              {name:"BROCHETTES DE POULET", image:"images/plat-brochette.jpg", tech:["Blanc de poulet : 200 g","Sauce barbecue : 30 g","Salade rouge : 50 g","Accompagnements — 2 au choix","Frites : 200 g","Pain : 1 p"]},
-              {name:"EMINCE DE POULET", image:"images/plat-emincepoulet.jpg", tech:["Poulet : 160 g","Champignons : 90 g","Crème fraîche : 100 ml","Demi-glace : 100 ml","Légumes variés : 220 g","Fokacha : 150 g","Frites : 200 g","Pain : 1 p","Huile : 50 ml"]},
-              {name:"BALLOTINE DE POULET", image:"images/plat-ballotine.jpg", tech:["Poulet : 250 g","Épinard : 40 g","Crème fraîche : 70 ml","Parmesan : 20 g","Cheddar : 60 g","Beurre : 30 g","Légumes : 220 g","Frites : 200 g","Pain : 1 p"]},
-              {name:"ESCALOPE A LA MILANAISE", image:"images/plat-milanaise.jpg", tech:["Poulet : 120 g","Chapelure : 50 g","Crème fraîche : 70 ml","Moutarde : 10 g","Parmesan : 30 g","Légumes : 220 g","Frites : 200 g","Pain : 1 p"]},
-              {name:"EMINCE DE BŒUF", image:"images/plat-eminceboeuf.jpg", tech:["Bœuf : 150 g","Champignons : 80 g","Crème fraîche : 70 ml","Demi-glace : 60 ml","Légumes : 220 g","Fokacha : 150 g","Frites : 200 g","Pain : 1 p","Huile : 60 ml"]},
-              {name:"FILET DE BŒUF", image:"images/plat-filet.jpg", tech:["Filet : 180 g","Beurre : 40 g","Poivre vert : 20 g","Demi-glace : 70 ml","Légumes : 220 g","Fokacha : 150 g","Frites : 200 g","Pain : 1 p"]},
-              {name:"PAVÉ DE SAUMON", image:"images/plat-saumon.jpg", tech:["Saumon : 180 g","Crevette : 80 g","Crème fraîche : 70 ml","Parmesan : 20 g","Beurre : 40 g","Légumes : 220 g","Fokacha : 150 g","Frites : 200 g","Pain : 1 p"]},
-              {name:"MENU ENFANT (PLAT)", image:"images/menu-enfant-plat.jpg", tech:["Pasta nature ou Mini pizza + boisson","OU Burger / nuggets + frites + boisson"]}
-            ]
-          },
-          {
-            category:"BURGERS", key:"bg",
-            items:[
-              {name:"CHEESE BURGER", image:"images/burger-cheese.jpg", tech:["Viande Hachée : 100 g","Cheddar : 20 g","Tomate : 30 g","Laitue : 20 g","Oignon+Cornichon : 45 ml","Sauce Bigy : 30 g","Frites + Sauce : 200 g","Pain : 1 p"]},
-              {name:"AVOCADO FORESTIER", image:"images/burger-avocado.jpg", tech:["Poulet : 120 g","Avocat : 50 g","Tomate/Laitue : 30 g","Œuf : 1 p","Chapelure : 50 g","Cheddar : 20 g","Sauce Bigy : 30 g","Frites+Sauce : 200 g","Pain : 1 p"]},
-              {name:"EGG BURGER", image:"images/burger-eggcheese.jpg", tech:["Viande : 100 g","Œuf : 1 p","Champignon : 30 g","Cheddar : 20 g","Tomate/Laitue : 30 g","Sauce Bigy : 30 g","Frites : 200 g","Pain : 1 p"]},
-              {name:"BIG BURGER", image:"images/burger-big.jpg", tech:["Viande : 2×100 g","Cheddar : 20 g","Tomate/Laitue : 30 g","Sauce du chef : 30 g","Frites : 200 g","Pain : 1 p"]},
-              {name:"BURGER ROYAL", image:"images/burger-royal.jpg", tech:["Viande : 100 g","Poulet pané : 120 g","Œuf : 1 p","Cheddar : 20 g","Oignons caramélisés : 25 g","Laitue/Tomate : 30 g","Sauce spéciale : 30 g","Frites : 200 g","Pain : 1 p"]},
-              {name:"BURGER GAMBAS", image:"images/burger-gambas.jpg", tech:["Gambas : 150 g","Sauce blanche : 40 g","Sauce pesto : 20 g","Cheddar : 20 g","Tomate/Laitue : 30 g","Frites : 200 g","Pain : 1 p"]}
-            ]
-          },
-          {
-            category:"PANINIS", key:"pa",
-            items:[
-              {name:"PANINI CHARCUTERIE", image:"images/panini-charcuterie.jpg", tech:["Charcuterie : 120 g","Mozzarella : 60 g","Frites+Sauce : 200 g","Sauce Bigy : 30 g","Pain : 1 p"]},
-              {name:"PANINI POULET", image:"images/panini-poulet.jpg", tech:["Poulet : 70 g","Mozzarella : 60 g","Frites+Sauce : 200 g","Sauce Bigy : 30 g","Pain : 1 p"]},
-              {name:"PANINI VIANDE HACHÉE", image:"images/panini-hache.jpg", tech:["Viande : 100 g","Mozzarella : 60 g","Frites+Sauce : 200 g","Sauce Bigy : 30 g","Pain : 1 p"]},
-              {name:"PANINI GOURMAND", image:"images/panini-mixte.jpg", tech:["Viande : 50 g","Poulet : 50 g","Charcuterie : 50 g","Mozzarella : 60 g","Frites+Sauce : 200 g","Sauce Bigy : 30 g","Pain : 1 p"]},
-              {name:"PANINI FRUITS DE MER", image:"images/panini-fruitsmer.jpg", tech:["Crevette : 100 g","Calamar : 50 g","Sauce pesto : 20 g","Mozzarella : 60 g","Frites : 200 g","Sauce Bigy : 30 g","Pain : 1 p"]},
-              {name:"PANINI SAUMON", image:"images/panini-saumon.jpg", tech:["Saumon : 90 g","Sauce pesto : 20 g","Mozzarella : 60 g","Frites : 200 g","Sauce Bigy : 30 g","Pain : 1 p"]}
-            ]
-          },
-          {
-            category:"SANDWICHS", key:"sw",
-            items:[
-              {name:"FRUITS DE MER", image:"images/sand-fruitsmer.jpg", tech:["Crevette : 125 g","Calamar : 70 g","Sauce Biggy : 40 g","Cheddar : 20 g","Crème fraîche : 60 ml","Sauce fromagère : 20 g","Frites : 200 g","Pain : 1 p"]},
-              {name:"THON", image:"images/sand-thon.jpg", tech:["Thon : 120 g","Tomate : 30 g","Sauce burger : 40 ml","Cheddar : 20 g","Frites : 200 g","Pain : 1 p"]},
-              {name:"POULET", image:"images/sand-poulet.jpg", tech:["Poulet : 120 g","Tomate : 30 g","Sauce burger : 40 ml","Cheddar : 20 g","Frites : 200 g","Pain : 1 p"]},
-              {name:"POULET CRUNCHY", image:"images/sand-crunchy.jpg", tech:["Poulet : 120 g","Œuf : 1 p","Chapelure : 50 g","Tomate : 30 g","Cheddar : 20 g","Frites : 200 g","Pain : 1 p"]},
-              {name:"CHEESE STEAK", image:"images/sand-cheesesteak.jpg", tech:["Filet : 70 g","Demi-glace : 40 ml","Champignon : 50 g","Cheddar : 20 g","Crème fraîche : 40 ml","Frites : 200 g","Pain : 1 p"]},
-              {name:"VIANDE HACHÉE", image:"images/sand-hache.jpg", tech:["Viande : 100 g","Tomate : 30 g","Sauce spéciale : 30 g","Cheddar : 20 g","Frites : 200 g","Pain : 1 p"]}
-            ]
-          },
-          {
-            category:"PIZZA", key:"pz",
-            items:[
-              {name:"MARGARITA", image:"images/pizza-margherita.jpg", tech:["Pâte : 150 g","Mozzarella : 200 g","Sauce tomate : 100 g","Olives noires : 13 g"]},
-              {name:"THON", image:"images/pizza-thon.jpg", tech:["Pâte : 150 g","Mozzarella : 200 g","Sauce tomate : 100 g","Thon : 100 g","Oignons : 40 g","Olives"]},
-              {name:"VÉGÉTARIENNE", image:"images/pizza-veggie.jpg", tech:["Pâte : 150 g","Mozzarella : 200 g","Sauce tomate : 100 g","Champignons : 60 g","Légumes : 220 g"]},
-              {name:"REGINA", image:"images/pizza-regina.jpg", tech:["Pâte : 150 g","Mozzarella : 200 g","Dinde fumée : 100 g","Champignons : 60 g","Sauce blanche : 100 g"]},
-              {name:"5 FROMAGES", image:"images/pizza-5fromages.jpg", tech:["Pâte : 150 g","Mozzarella : 50 g","Brie : 50 g","Bleu : 40 g","Sauce blanche : 100 g","Parmesan : 20 g","Fromage rouge : 40 g"]},
-              {name:"VIANDE HACHÉE", image:"images/pizza-hache.jpg", tech:["Pâte : 150 g","Mozzarella : 200 g","Sauce tomate : 100 g","Viande : 100 g","Tomate cerise : 40 g"]},
-              {name:"PEPPERONI", image:"images/pizza-pepperoni.jpg", tech:["Pâte : 150 g","Mozzarella : 200 g","Sauce tomate : 100 g","Pepperoni : 40 g"]},
-              {name:"POULET SAUCE BLANCHE", image:"images/pizza-pouletblanche.jpg", tech:["Pâte : 150 g","Mozzarella : 200 g","Poulet : 150 g","Champignon : 60 g","Sauce blanche : 100 g"]},
-              {name:"4 SAISONS", image:"images/pizza-4saisons.jpg", tech:["Pâte : 150 g","Mozzarella : 200 g","Calamar : 40 g","Crevette : 40 g","Viande : 40 g","Poulet : 40 g","Légumes : 60 g","Champignon : 60 g"]},
-              {name:"MOITIÉ MOITIÉ", image:"images/pizza-moitiemoitie.jpg", tech:["Pâte : 150 g","Garnitures 2 moitiés (hors fruits de mer/saumon)"]},
-              {name:"BURRATA", image:"images/pizza-burrata.jpg", tech:["Pâte : 150 g","Mozzarella : 200 g","Sauce tomate : 100 g","Burrata : 35 g","Noix : 30 g","Tomate cerise : 20 g"]},
-              {name:"FRUITS DE MER", image:"images/pizza-fruitsmer.jpg", tech:["Pâte : 150 g","Mozzarella : 200 g","Crevette : 110 g","Calamar : 70 g","Moules : 40 g","Champignon : 60 g","Sauce blanche : 100 g"]},
-              {name:"SAUMON", image:"images/pizza-saumon.jpg", tech:["Pâte : 150 g","Mozzarella : 200 g","Saumon : 90 g","Sauce blanche : 100 g","Câpres : 15 g"]}
-            ]
-          },
-          {
-            category:"PÂTES", key:"pae",
-            items:[
-              {name:"LASAGNE_POULET", image:"images/lasagne_poulet.jpeg", prepTime:15, tech:["Pâtes : 60 g","poulet : 80 g","Parmesan : 15 g","Huile : 60 g","champignon : 50 g","Pesto : 70 g","Sauce blanche : 100 g","Oignon/Ail : 70 g"], price:"62 DH"},
-              {name:"LASAGNE_BOLOGNAISE", image:"images/lasagne_bolognaise.jpeg", prepTime:15, tech:["Pâtes : 60 g","Viande : 100 g","Parmesan : 15 g","Huile : 60 g","Tomate cerise : 50 g","Pesto : 70 g","Sauce tomate : 80 g","Oignon/Ail : 70 g"], price:"68 DH"},
-              {name:"LASAGNE_FRUIT DE MER", image:"images/lasagne _fruitdemer.jpeg", prepTime:15, tech:["Pâtes : 60 g","crevette :140 g","Parmesan : 15 g","Huile : 60 g","CALAMAR : 100g","Pesto : 70 g","Sauce blanche : 100 g","Oignon/Ail : 70 g"], price:"78 DH"},
-              {name:"VÉGÉTARIEN", image:"images/pasta-veg.jpg", tech:["Pâtes : 320 g","Sauce pesto : 70 g","Parmesan : 60 g","Huile d'olive : 60 g","Crème : 100 g","Oignon : 60 g","Tomate cerise : 50 g","Légumes : 150 g"]},
-              {name:"CARBONARA", image:"images/pasta-carbonara.jpg", tech:["Pâtes : 320 g","Jambon de dinde : 80 g","Parmesan : 60 g","Huile : 60 g","Crème : 100 g","Oignon/Ail : 70 g"]},
-              {name:"5 FROMAGE", image:"images/pasta-5fromages.jpg", tech:["Pâtes : 320 g","Brie : 25 g","Parmesan : 25 g","Bleu : 20 g","Mozzarella : 30 g","Edam : 20 g","Huile : 60 g","Crème : 100 g","Oignon/Ail : 70 g"]},
-              {name:"REGATONI RICOTTA", image:"images/pasta-ricotta.jpg", tech:["Pâtes : 320 g","Ricotta : 40 g","Parmesan : 60 g","Huile : 60 g","Crème : 100 g","Pesto : 70 g","Courgette : 100 g","Oignon/Ail : 70 g"]},
-              {name:"BOLOGNAISE", image:"images/pasta-bolognaise.jpg", tech:["Pâtes : 320 g","Viande : 100 g","Parmesan : 60 g","Huile : 60 g","Tomate cerise : 50 g","Pesto : 70 g","Sauce tomate : 80 g","Oignon/Ail : 70 g"]},
-              {name:"POULET CHAMPIGNON", image:"images/pasta-poulet.jpg", tech:["Pâtes : 320 g","Poulet : 80 g","Parmesan : 60 g","Huile : 60 g","Crème : 100 g","Pesto : 70 g","Épinard : 30 g","Champignon : 70 g","Oignon/Ail : 70 g"]},
-              {name:"FRUITS DE MER", image:"images/pasta-fruitsmer.jpg", tech:["Pâtes : 320 g","Crevettes : 105 g","Calamar : 60 g","Moules : 15 g","Parmesan : 60 g","Huile : 60 g","Crème : 100 g","Pesto : 70 g","Oignon/Ail : 70 g"]},
-              {name:"SAUMON", image:"images/pasta-saumon.jpg", tech:["Pâtes : 320 g","Saumon : 90 g","Parmesan : 60 g","Huile : 60 g","Crème : 100 g","Pesto : 70 g","Oignon/Ail : 70 g"]},
-              {name:"SPAGHETTIS NOIRS (suppl.)", image:"images/pasta-noir.jpg", tech:["Supplément pâtes noires à l'encre de seiche"]}
-            ]
-          }
-        ];
+    const buildPricesFromRows = (rows) => {
+      const out = [];
+      for (const r of rows) {
+        const name = pick(r, ["name","article","produit","plat","designation","désignation","libelle","libellé"]);
+        const cost = toNumber(pick(r, ["cost","cout","coût","foodcost","fc","prix_revient","prixde_revient","prix_de_revient"]));
+        const price = toNumber(pick(r, ["price","prix","vente","prix_vente","prixdevente","prix_de_vente"]));
+        if (!name) continue;
+        if (!Number.isFinite(cost) || !Number.isFinite(price) || price <= 0) continue;
 
-        // --- UTILS ---
-        const normalizeStr = (str) => {
-          if (!str) return "";
-          return str.toUpperCase()
-            .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-            .replace(/\bS\b/g, "")
-            .replace(/[^A-Z0-9]/g, "")
-            .trim();
-        };
+        const gain = ((price - cost) / price) * 100;
+        out.push({ name: String(name).trim(), cost, price, gain });
+      }
+      return out;
+    };
 
-        const getPriceData = (itemName) => {
-          let matchedPrice = null;
+    async function loadExcelFromUrl(url = "fiche menu.xlsx") {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const buf = await res.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array" });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+      return buildPricesFromRows(rows);
+    }
 
-          if (NAME_MAPPING[itemName]) {
-            const mappedName = normalizeStr(NAME_MAPPING[itemName]);
-            matchedPrice = EXCEL_PRICES.find(p => normalizeStr(p.name) === mappedName) || null;
-          }
+    // ============================
+    // NAME MAPPING
+    // ============================
+    const NAME_MAPPING = {
+      "Salade Veggie": "CERCLE VEGGI",
+      "VÉGÉTARIENNE": "PIZZA VIGETARIENNE",
+      "VÉGÉTARIEN": "PASTA VEGITARIENNE",
+      "FRUITS DE MER": "FRUITE DE MER",
+      "Regatoni Ricotta": "REGATONI RICOTTA",
+      "5 FROMAGE": "PIZZA 5 FROMAGE",
+      "CARBONARA": "PASTA CARBONARA",
+      "BOLOGNAISE": "PASTA BOLOGNAISE",
+      "POULET CHAMPIGNON": "PASTA POULET CHAMPIGNON",
+      "FRUIT DE MER": "PASTA FRUIT DE MER",
+      "Salade Tartare saumon": "SALADE TARTARE SAUMON",
+      "SAUMON": "PASTA SAUMON",
 
-          const searchName = normalizeStr(itemName);
+      // ✅ nouveaux / variations
+      "PAVÉ DE SAUMON": "PAVE DE SAUMON",
+      "BOULETTES DE POULET FROMAGE": "BOULETTES DE POULET FROMAGE",
+      "POULARD": "SANDWICH POULET",
+      "CHICKEN BURGER": "CHICKEN BURGER"
+    };
 
-          if (!matchedPrice) {
-            matchedPrice = EXCEL_PRICES.find(p => normalizeStr(p.name) === searchName) || null;
-          }
+    // ============================
+    // DATA (menu)
+    // ✅ SUPPRIMÉS : CROQUETTES 5 FROMAGES, CORDON BLEU, ESCALOPE PARMIGIANA, RUMSTEAK, SALADE CAPRESE (absente)
+    // ✅ AJOUTÉS : BOULETTES POULET FROMAGE, CHICKEN BURGER, POULARD, WRAPS
+    // ============================
+    const DATA = [
+      {
+        category:"ENTRÉES FROIDES", key:"ef",
+        items:[
+          {name:"Salade Veggie", image:"entree-veggi.jpg", tech:["S. Rouge : 100 g","Concombre : 80 g","Tomate Cerise : 70 g","Œufs de Caille : 1 p","Haricot Vert : 60 g","Betterave : 120 g","Carotte : 40 g","Brocoli : 50 g","Radis : 60 g","Thon : 50 g","Sauce Vinaigrette : 200 g","Maïs : 30 g","Poivron : 50 g"]},
+          {name:"Salade Russe", image:"images/entree-russe.jpg", tech:["Pomme de Terre : 70 g","Carotte : 70 g","Poulet : 25 g","Petit Pois : 15 g","Olive Verte : 15 g","Cornichon : 24 g","Œuf de Caille : 1 p","Mayonnaise : 30 g","Thon : 15 g","Maïs : 15 g","Radis : 14 g","Poivron : 10 g","Concombre : 10 g"]},
+          {name:"Salade César", image:"images/entree-caesar.jpg", tech:["Laitue : 100 g","Poulet : 120 g","Croûtons : 30 g","Tomate Cerise : 50 g","Sauce César : 70 g","Parmesan : 25 g"]},
+          {name:"Salade Quinoa", image:"images/entree-quinoa.jpg", tech:["Quinoa : 130 g","Gambas Pané : 40 g","Gambas Poché : 32 g","Fruits : 70 g","Feta : 20 g","Kiwi : 120 g","Vinaigrette : 20 g","Miel : 30 g","Framboise : 17 g"]},
+          {name:"Salade Terre & Mer", image:"images/entree-terremer.jpg", tech:["Tomate Cerise : 25 g","S. Rouge : 25 g","Maïs : 30 g","Gambas Poché : 32 g","Gambas Pané : 20 g","Avocat : 150 g","Sauce Tartare : 30 g","Pomme : 24 g","Moules : 16 g","Agrumes : 15 g"]},
+          {name:"Salade Tartare saumon", image:"images/entree-tartare.jpeg", tech:["Saumon frais : 90 g","Saumon fumé : 25 g","Avocat : 300 g","Sauce tartare : 24 g"]},
+          {name:"Salade Burrata", image:"images/entree-burrata.jpg", tech:["Burrata : 184 g","Noix : 30 g","Roquette : 25 g","Pesto : 15 g","Balsamique : 10 g","Fruits Rouges : 40 g","Radis : 10 g","Tomate Cerise : 25 g"]}
+        ]
+      },
+      {
+        category:"ENTRÉES CHAUDES", key:"ec",
+        items:[
+          {name:"CROUSTILLON GAMBAS", image:"images/entree-croustillon.jpg", tech:["Gambas panées : 200 g","Purée : 750 g","Radis : 15 g","Parmesan : 14 g","Crème fraîche : 50 g"]},
+          {name:"PIL PIL ESPAGNOL", image:"images/entree-pilpil.jpg", tech:["Gambas : 200 g","Tomate cerise : 60 g","Pesto : 22 g","Huile d’olive : 30 g","Oignon : 60 g","Ail : 10 g","Sauce tomate : 120 g"]},
 
-          if (!matchedPrice) {
-            matchedPrice = EXCEL_PRICES.find(p => {
-              const pName = normalizeStr(p.name);
-              return searchName.includes(pName) || pName.includes(searchName);
-            }) || null;
-          }
+          // ✅ nouveau
+          {name:"BOULETTES DE POULET FROMAGE", image:"images/entree-boulette-poulet.jpg", tech:["Poulet haché : 200 g","Cheddar : 60 g","Épices : QS","Sauce (option) : QS"]}
+        ]
+      },
+      {
+        category:"PLATS", key:"pl",
+        items:[
+          {name:"BROCHETTES DE POULET", image:"images/plat-brochette.jpg", tech:["Blanc de poulet : 200 g","Sauce barbecue : 30 g","Salade rouge : 50 g","Accompagnements — 2 au choix","Frites : 200 g","Pain : 1 p"]},
+          {name:"EMINCE DE POULET", image:"images/plat-emincepoulet.jpg", tech:["Poulet : 160 g","Champignons : 90 g","Crème fraîche : 100 ml","Demi-glace : 100 ml","Légumes variés : 220 g","Fokacha : 150 g","Frites : 200 g","Pain : 1 p","Huile : 50 ml"]},
+          {name:"BALLOTINE DE POULET", image:"images/plat-ballotine.jpg", tech:["Poulet : 250 g","Épinard : 40 g","Crème fraîche : 70 ml","Parmesan : 20 g","Cheddar : 60 g","Beurre : 30 g","Légumes : 220 g","Frites : 200 g","Pain : 1 p"]},
+          {name:"ESCALOPE A LA MILANAISE", image:"images/plat-milanaise.jpg", tech:["Poulet : 120 g","Chapelure : 50 g","Crème fraîche : 70 ml","Moutarde : 10 g","Parmesan : 30 g","Légumes : 220 g","Frites : 200 g","Pain : 1 p"]},
+          {name:"EMINCE DE BŒUF", image:"images/plat-eminceboeuf.jpg", tech:["Bœuf : 150 g","Champignons : 80 g","Crème fraîche : 70 ml","Demi-glace : 60 ml","Légumes : 220 g","Fokacha : 150 g","Frites : 200 g","Pain : 1 p","Huile : 60 ml"]},
+          {name:"FILET DE BŒUF", image:"images/plat-filet.jpg", tech:["Filet : 180 g","Beurre : 40 g","Poivre vert : 20 g","Demi-glace : 70 ml","Légumes : 220 g","Fokacha : 150 g","Frites : 200 g","Pain : 1 p"]},
+          {name:"PAVÉ DE SAUMON", image:"images/plat-saumon.jpg", tech:["Saumon : 180 g","Crevette : 80 g","Crème fraîche : 70 ml","Parmesan : 20 g","Beurre : 40 g","Légumes : 220 g","Fokacha : 150 g","Frites : 200 g","Pain : 1 p"]},
+          {name:"MENU ENFANT (PLAT)", image:"images/menu-enfant-plat.jpg", tech:["Pasta nature ou Mini pizza + boisson","OU Burger / nuggets + frites + boisson"]}
+        ]
+      },
+      {
+        category:"BURGERS", key:"bg",
+        items:[
+          {name:"CHEESE BURGER", image:"images/burger-cheese.jpg", tech:["Viande Hachée : 100 g","Cheddar : 20 g","Tomate : 30 g","Laitue : 20 g","Oignon+Cornichon : 45 ml","Sauce Bigy : 30 g","Frites + Sauce : 200 g","Pain : 1 p"]},
+          {name:"AVOCADO FORESTIER", image:"images/burger-avocado.jpg", tech:["Poulet : 120 g","Avocat : 50 g","Tomate/Laitue : 30 g","Œuf : 1 p","Chapelure : 50 g","Cheddar : 20 g","Sauce Bigy : 30 g","Frites+Sauce : 200 g","Pain : 1 p"]},
+          {name:"EGG BURGER", image:"images/burger-eggcheese.jpg", tech:["Viande : 100 g","Œuf : 1 p","Champignon : 30 g","Cheddar : 20 g","Tomate/Laitue : 30 g","Sauce Bigy : 30 g","Frites : 200 g","Pain : 1 p"]},
+          {name:"BIG BURGER", image:"images/burger-big.jpg", tech:["Viande : 2×100 g","Cheddar : 20 g","Tomate/Laitue : 30 g","Sauce du chef : 30 g","Frites : 200 g","Pain : 1 p"]},
+          {name:"BURGER ROYAL", image:"images/burger-royal.jpg", tech:["Viande : 100 g","Poulet pané : 120 g","Œuf : 1 p","Cheddar : 20 g","Oignons caramélisés : 25 g","Laitue/Tomate : 30 g","Sauce spéciale : 30 g","Frites : 200 g","Pain : 1 p"]},
+          {name:"BURGER GAMBAS", image:"images/burger-gambas.jpg", tech:["Gambas : 150 g","Sauce blanche : 40 g","Sauce pesto : 20 g","Cheddar : 20 g","Tomate/Laitue : 30 g","Frites : 200 g","Pain : 1 p"]},
 
-          if (!matchedPrice) {
-            return { cost: 0, price: 0, marginPercent: 0, costPercent: 0, netGain: 0, isAvailable: false };
-          }
+          // ✅ nouveau (présent dans ton menu récent)
+          {name:"CHICKEN BURGER", image:"images/burger-cheese.jpg", tech:["Poulet : 120 g","Cheddar : 20 g","Laitue : 20 g","Tomate : 30 g","Oignon + Cornichon : 45 ml","Sauce biggy : 30 g","Frites : 200 g","Pain : 1 p"]}
+        ]
+      },
+      {
+        category:"PANINIS", key:"pa",
+        items:[
+          {name:"PANINI CHARCUTERIE", image:"images/panini-charcuterie.jpg", tech:["Charcuterie : 120 g","Mozzarella : 60 g","Frites+Sauce : 200 g","Sauce Bigy : 30 g","Pain : 1 p"]},
+          {name:"PANINI POULET", image:"images/panini-poulet.jpg", tech:["Poulet : 70 g","Mozzarella : 60 g","Frites+Sauce : 200 g","Sauce Bigy : 30 g","Pain : 1 p"]},
+          {name:"PANINI VIANDE HACHÉE", image:"images/panini-hache.jpg", tech:["Viande : 100 g","Mozzarella : 60 g","Frites+Sauce : 200 g","Sauce Bigy : 30 g","Pain : 1 p"]},
+          {name:"PANINI GOURMAND", image:"images/panini-mixte.jpg", tech:["Viande : 50 g","Poulet : 50 g","Charcuterie : 50 g","Mozzarella : 60 g","Frites+Sauce : 200 g","Sauce Bigy : 30 g","Pain : 1 p"]},
+          {name:"PANINI FRUITS DE MER", image:"images/panini-fruitsmer.jpg", tech:["Crevette : 100 g","Calamar : 50 g","Sauce pesto : 20 g","Mozzarella : 60 g","Frites : 200 g","Sauce Bigy : 30 g","Pain : 1 p"]},
+          {name:"PANINI SAUMON", image:"images/panini-saumon.jpg", tech:["Saumon : 90 g","Sauce pesto : 20 g","Mozzarella : 60 g","Frites : 200 g","Sauce Bigy : 30 g","Pain : 1 p"]}
+        ]
+      },
+      {
+        category:"WRAPS", key:"wr",
+        items:[
+          {name:"WRAP POULET", image:"images/wrap-poulet.jpg", tech:["Poulet pané : 120 g","Cheddar : 20 g","Tomate : 30 g","Laitue : 20 g","Sauce : 30 g","Tortilla : 1 p"]},
+          {name:"WRAP VIANDE HACHÉE", image:"images/wrap-viande-hachee.jpg", tech:["Viande hachée : 120 g","Cheddar : 20 g","Tomate : 30 g","Laitue : 20 g","Sauce : 30 g","Tortilla : 1 p"]},
+          {name:"WRAP GOURMAND", image:"images/wrap-gourmand.jpg", tech:["Poulet pané : 100 g","Charcuterie : 50 g","Cheddar : 20 g","Tomate : 30 g","Laitue : 20 g","Sauce : 30 g","Tortilla : 1 p"]}
+        ]
+      },
+      {
+        category:"SANDWICHS", key:"sw",
+        items:[
+          {name:"FRUITS DE MER", image:"images/sand-fruitsmer.jpg", tech:["Crevette : 125 g","Calamar : 70 g","Sauce Biggy : 40 g","Cheddar : 20 g","Crème fraîche : 60 ml","Sauce fromagère : 20 g","Frites : 200 g","Pain : 1 p"]},
+          {name:"THON", image:"images/sand-thon.jpg", tech:["Thon : 120 g","Tomate : 30 g","Sauce burger : 40 ml","Cheddar : 20 g","Frites : 200 g","Pain : 1 p"]},
+          {name:"POULET", image:"images/sand-poulet.jpg", tech:["Poulet : 120 g","Tomate : 30 g","Sauce burger : 40 ml","Cheddar : 20 g","Frites : 200 g","Pain : 1 p"]},
 
-          const costPercent = (matchedPrice.cost / matchedPrice.price) * 100;
-          return {
-            cost: matchedPrice.cost,
-            price: matchedPrice.price,
-            marginPercent: matchedPrice.gain,
-            costPercent,
-            netGain: matchedPrice.price - matchedPrice.cost,
-            isAvailable: true
-          };
-        };
+          // ✅ nouveau “POULARD”
+          {name:"POULARD", image:"images/sand-cheesesteak.jpg", tech:["Emincé poulet : 120 g","Champignon : 50 g","Cheddar : 20 g","Sauce blanche : 40 ml","Frites : 200 g","Pain : 1 p"]},
 
-        // --- COMPONENTS ---
-        const FoodCard = ({ item }) => {
-          const stats = getPriceData(item.name);
-          const isHighCost = stats.costPercent > 35;
-          const costColorClass = isHighCost ? 'text-rose-500' : 'text-emerald-500';
-          const barColorClass = isHighCost ? 'bg-rose-500' : 'bg-emerald-500';
+          {name:"POULET CRUNCHY", image:"images/sand-crunchy.jpg", tech:["Poulet : 120 g","Œuf : 1 p","Chapelure : 50 g","Tomate : 30 g","Cheddar : 20 g","Frites : 200 g","Pain : 1 p"]},
+          {name:"CHEESE STEAK", image:"images/sand-cheesesteak.jpg", tech:["Filet : 70 g","Demi-glace : 40 ml","Champignon : 50 g","Cheddar : 20 g","Crème fraîche : 40 ml","Frites : 200 g","Pain : 1 p"]},
+          {name:"VIANDE HACHÉE", image:"images/sand-hache.jpg", tech:["Viande : 100 g","Tomate : 30 g","Sauce spéciale : 30 g","Cheddar : 20 g","Frites : 200 g","Pain : 1 p"]}
+        ]
+      },
+      {
+        category:"PIZZA", key:"pz",
+        items:[
+          {name:"MARGARITA", image:"images/pizza-margherita.jpg", tech:["Pâte : 150 g","Mozzarella : 200 g","Sauce tomate : 100 g","Olives noires : 13 g"]},
+          {name:"THON", image:"images/pizza-thon.jpg", tech:["Pâte : 150 g","Mozzarella : 200 g","Sauce tomate : 100 g","Thon : 100 g","Oignons : 40 g","Olives"]},
+          {name:"VÉGÉTARIENNE", image:"images/pizza-veggie.jpg", tech:["Pâte : 150 g","Mozzarella : 200 g","Sauce tomate : 100 g","Champignons : 60 g","Légumes : 220 g"]},
+          {name:"REGINA", image:"images/pizza-regina.jpg", tech:["Pâte : 150 g","Mozzarella : 200 g","Dinde fumée : 100 g","Champignons : 60 g","Sauce blanche : 100 g"]},
+          {name:"5 FROMAGES", image:"images/pizza-5fromages.jpg", tech:["Pâte : 150 g","Mozzarella : 50 g","Brie : 50 g","Bleu : 40 g","Sauce blanche : 100 g","Parmesan : 20 g","Fromage rouge : 40 g"]},
+          {name:"VIANDE HACHÉE", image:"images/pizza-hache.jpg", tech:["Pâte : 150 g","Mozzarella : 200 g","Sauce tomate : 100 g","Viande : 100 g","Tomate cerise : 40 g"]},
+          {name:"PEPPERONI", image:"images/pizza-pepperoni.jpg", tech:["Pâte : 150 g","Mozzarella : 200 g","Sauce tomate : 100 g","Pepperoni : 40 g"]},
+          {name:"POULET SAUCE BLANCHE", image:"images/pizza-pouletblanche.jpg", tech:["Pâte : 150 g","Mozzarella : 200 g","Poulet : 150 g","Champignon : 60 g","Sauce blanche : 100 g"]},
+          {name:"4 SAISONS", image:"images/pizza-4saisons.jpg", tech:["Pâte : 150 g","Mozzarella : 200 g","Calamar : 40 g","Crevette : 40 g","Viande : 40 g","Poulet : 40 g","Légumes : 60 g","Champignon : 60 g"]},
+          {name:"MOITIÉ MOITIÉ", image:"images/pizza-moitiemoitie.jpg", tech:["Pâte : 150 g","Garnitures 2 moitiés (hors fruits de mer/saumon)"]},
+          {name:"BURRATA", image:"images/pizza-burrata.jpg", tech:["Pâte : 150 g","Mozzarella : 200 g","Sauce tomate : 100 g","Burrata : 35 g","Noix : 30 g","Tomate cerise : 20 g"]},
+          {name:"FRUITS DE MER", image:"images/pizza-fruitsmer.jpg", tech:["Pâte : 150 g","Mozzarella : 200 g","Crevette : 110 g","Calamar : 70 g","Moules : 40 g","Champignon : 60 g","Sauce blanche : 100 g"]},
+          {name:"SAUMON", image:"images/pizza-saumon.jpg", tech:["Pâte : 150 g","Mozzarella : 200 g","Saumon : 90 g","Sauce blanche : 100 g","Câpres : 15 g"]}
+        ]
+      },
+      {
+        category:"PÂTES", key:"pae",
+        items:[
+          {name:"LASAGNE_POULET", image:"images/lasagne_poulet.jpeg", prepTime:15, tech:["Pâtes : 60 g","Poulet : 80 g","Parmesan : 15 g","Huile : 60 g","Champignon : 50 g","Pesto : 70 g","Sauce blanche : 100 g","Oignon/Ail : 70 g"]},
+          {name:"LASAGNE_BOLOGNAISE", image:"images/lasagne_bolognaise.jpeg", prepTime:15, tech:["Pâtes : 60 g","Viande : 100 g","Parmesan : 15 g","Huile : 60 g","Tomate cerise : 50 g","Pesto : 70 g","Sauce tomate : 80 g","Oignon/Ail : 70 g"]},
+          {name:"LASAGNE_FRUIT DE MER", image:"images/lasagne _fruitdemer.jpeg", prepTime:15, tech:["Pâtes : 60 g","Crevette : 140 g","Parmesan : 15 g","Huile : 60 g","Calamar : 100 g","Pesto : 70 g","Sauce blanche : 100 g","Oignon/Ail : 70 g"]},
+          {name:"VÉGÉTARIEN", image:"images/pasta-veg.jpg", tech:["Pâtes : 320 g","Sauce pesto : 70 g","Parmesan : 60 g","Huile d'olive : 60 g","Crème : 100 g","Oignon : 60 g","Tomate cerise : 50 g","Légumes : 150 g"]},
+          {name:"CARBONARA", image:"images/pasta-carbonara.jpg", tech:["Pâtes : 320 g","Jambon de dinde : 80 g","Parmesan : 60 g","Huile : 60 g","Crème : 100 g","Oignon/Ail : 70 g"]},
+          {name:"5 FROMAGE", image:"images/pasta-5fromages.jpg", tech:["Pâtes : 320 g","Brie : 25 g","Parmesan : 25 g","Bleu : 20 g","Mozzarella : 30 g","Edam : 20 g","Huile : 60 g","Crème : 100 g","Oignon/Ail : 70 g"]},
+          {name:"REGATONI RICOTTA", image:"images/pasta-ricotta.jpg", tech:["Pâtes : 320 g","Ricotta : 40 g","Parmesan : 60 g","Huile : 60 g","Crème : 100 g","Pesto : 70 g","Courgette : 100 g","Oignon/Ail : 70 g"]},
+          {name:"BOLOGNAISE", image:"images/pasta-bolognaise.jpg", tech:["Pâtes : 320 g","Viande : 100 g","Parmesan : 60 g","Huile : 60 g","Tomate cerise : 50 g","Pesto : 70 g","Sauce tomate : 80 g","Oignon/Ail : 70 g"]},
+          {name:"POULET CHAMPIGNON", image:"images/pasta-poulet.jpg", tech:["Pâtes : 320 g","Poulet : 80 g","Parmesan : 60 g","Huile : 60 g","Crème : 100 g","Pesto : 70 g","Épinard : 30 g","Champignon : 70 g","Oignon/Ail : 70 g"]},
+          {name:"FRUITS DE MER", image:"images/pasta-fruitsmer.jpg", tech:["Pâtes : 320 g","Crevettes : 105 g","Calamar : 60 g","Moules : 15 g","Parmesan : 60 g","Huile : 60 g","Crème : 100 g","Pesto : 70 g","Oignon/Ail : 70 g"]},
+          {name:"SAUMON", image:"images/pasta-saumon.jpg", tech:["Pâtes : 320 g","Saumon : 90 g","Parmesan : 60 g","Huile : 60 g","Crème : 100 g","Pesto : 70 g","Oignon/Ail : 70 g"]},
+          {name:"SPAGHETTIS NOIRS (suppl.)", image:"images/pasta-noir.jpg", tech:["Supplément pâtes noires à l'encre de seiche"]}
+        ]
+      }
+    ];
 
-          return React.createElement('div', {
-            className: "bg-[#1e293b] border border-[#334155] rounded-xl overflow-hidden flex flex-col transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/50 group"
-          }, 
-            React.createElement('div', { className: "relative h-44 overflow-hidden" },
-              React.createElement('img', {
-                src: item.image,
-                alt: item.name,
-                className: "w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300",
-                onError: (e) => { e.target.src = "https://placehold.co/400x300?text=No+Image"; }
-              }),
-              React.createElement('div', { className: "absolute inset-0 bg-gradient-to-t from-[#0f172a] via-transparent to-transparent opacity-90" }),
-              React.createElement('div', { className: "absolute bottom-3 left-4 right-4" },
-                React.createElement('h3', { className: "text-lg font-bold text-white drop-shadow-lg leading-tight" }, item.name.replace(/_/g, ' '))
+    // ============================
+    // UTILS
+    // ============================
+    const normalizeStr = (str) => {
+      if (!str) return "";
+      return str.toUpperCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/\bS\b/g, "")
+        .replace(/[^A-Z0-9]/g, "")
+        .trim();
+    };
+
+    const getPriceData = (itemName, excelPrices) => {
+      let matchedPrice = null;
+
+      if (NAME_MAPPING[itemName]) {
+        const mappedName = normalizeStr(NAME_MAPPING[itemName]);
+        matchedPrice = excelPrices.find(p => normalizeStr(p.name) === mappedName) || null;
+      }
+
+      const searchName = normalizeStr(itemName);
+
+      if (!matchedPrice) {
+        matchedPrice = excelPrices.find(p => normalizeStr(p.name) === searchName) || null;
+      }
+
+      if (!matchedPrice) {
+        matchedPrice = excelPrices.find(p => {
+          const pName = normalizeStr(p.name);
+          return searchName.includes(pName) || pName.includes(searchName);
+        }) || null;
+      }
+
+      if (!matchedPrice) {
+        return { cost: 0, price: 0, marginPercent: 0, costPercent: 0, netGain: 0, isAvailable: false };
+      }
+
+      const costPercent = (matchedPrice.cost / matchedPrice.price) * 100;
+      return {
+        cost: matchedPrice.cost,
+        price: matchedPrice.price,
+        marginPercent: matchedPrice.gain,
+        costPercent,
+        netGain: matchedPrice.price - matchedPrice.cost,
+        isAvailable: true
+      };
+    };
+
+    // ============================
+    // COMPONENTS
+    // ============================
+    const FoodCard = ({ item, excelPrices }) => {
+      const stats = getPriceData(item.name, excelPrices);
+      const isHighCost = stats.costPercent > 35;
+      const costColorClass = isHighCost ? 'text-rose-500' : 'text-emerald-500';
+      const barColorClass = isHighCost ? 'bg-rose-500' : 'bg-emerald-500';
+
+      return React.createElement('div', {
+        className: "bg-[#1e293b] border border-[#334155] rounded-xl overflow-hidden flex flex-col transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/50 group"
+      },
+        React.createElement('div', { className: "relative h-44 overflow-hidden" },
+          React.createElement('img', {
+            src: item.image,
+            alt: item.name,
+            className: "w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300",
+            onError: (e) => { e.target.src = "https://placehold.co/400x300?text=No+Image"; }
+          }),
+          React.createElement('div', { className: "absolute inset-0 bg-gradient-to-t from-[#0f172a] via-transparent to-transparent opacity-90" }),
+          React.createElement('div', { className: "absolute bottom-3 left-4 right-4 flex items-end justify-between gap-2" },
+            React.createElement('h3', { className: "text-lg font-bold text-white drop-shadow-lg leading-tight" }, item.name.replace(/_/g, ' ')),
+            item.isNew ? React.createElement('span', { className:"text-[10px] font-black bg-emerald-500 text-slate-900 px-2 py-1 rounded-full" }, "NEW") : null
+          )
+        ),
+        React.createElement('div', { className: "p-4 bg-[#161f2e] border-b border-[#334155]" },
+          stats.isAvailable ? React.createElement(React.Fragment, null,
+            React.createElement('div', { className: "grid grid-cols-4 gap-px bg-[#334155] border border-[#334155] rounded-lg overflow-hidden" },
+              React.createElement('div', { className: "bg-[#1e293b] p-2 text-center flex flex-col justify-center" },
+                React.createElement('span', { className: "text-[9px] uppercase text-slate-400 mb-1 tracking-wider font-semibold" }, "Coût"),
+                React.createElement('span', { className: "text-rose-500 font-bold text-sm font-mono" }, stats.cost.toFixed(2))
+              ),
+              React.createElement('div', { className: "bg-[#1e293b] p-2 text-center flex flex-col justify-center" },
+                React.createElement('span', { className: "text-[9px] uppercase text-slate-400 mb-1 tracking-wider font-semibold" }, "Prix"),
+                React.createElement('span', { className: "text-white font-bold text-sm font-mono" }, stats.price.toFixed(1))
+              ),
+              React.createElement('div', { className: "bg-[#1e293b] p-2 text-center flex flex-col justify-center" },
+                React.createElement('span', { className: "text-[9px] uppercase text-slate-400 mb-1 tracking-wider font-semibold" }, "Marge %"),
+                React.createElement('span', { className: "text-emerald-400 font-bold text-sm font-mono" }, Math.round(stats.marginPercent), "%")
+              ),
+              React.createElement('div', { className: "bg-[#1e293b] p-2 text-center flex flex-col justify-center" },
+                React.createElement('span', { className: "text-[9px] uppercase text-slate-400 mb-1 tracking-wider font-semibold" }, "Cost %"),
+                React.createElement('span', { className: `${costColorClass} font-bold text-sm font-mono` }, stats.costPercent.toFixed(1), "%")
               )
             ),
-            React.createElement('div', { className: "p-4 bg-[#161f2e] border-b border-[#334155]" },
-              stats.isAvailable ? React.createElement(React.Fragment, null,
-                React.createElement('div', { className: "grid grid-cols-4 gap-px bg-[#334155] border border-[#334155] rounded-lg overflow-hidden" },
-                  React.createElement('div', { className: "bg-[#1e293b] p-2 text-center flex flex-col justify-center" },
-                    React.createElement('span', { className: "text-[9px] uppercase text-slate-400 mb-1 tracking-wider font-semibold" }, "Coût"),
-                    React.createElement('span', { className: "text-rose-500 font-bold text-sm font-mono" }, stats.cost.toFixed(2))
-                  ),
-                  React.createElement('div', { className: "bg-[#1e293b] p-2 text-center flex flex-col justify-center" },
-                    React.createElement('span', { className: "text-[9px] uppercase text-slate-400 mb-1 tracking-wider font-semibold" }, "Prix"),
-                    React.createElement('span', { className: "text-white font-bold text-sm font-mono" }, stats.price.toFixed(1))
-                  ),
-                  React.createElement('div', { className: "bg-[#1e293b] p-2 text-center flex flex-col justify-center" },
-                    React.createElement('span', { className: "text-[9px] uppercase text-slate-400 mb-1 tracking-wider font-semibold" }, "Marge %"),
-                    React.createElement('span', { className: "text-emerald-400 font-bold text-sm font-mono" }, Math.round(stats.marginPercent), "%")
-                  ),
-                  React.createElement('div', { className: "bg-[#1e293b] p-2 text-center flex flex-col justify-center" },
-                    React.createElement('span', { className: "text-[9px] uppercase text-slate-400 mb-1 tracking-wider font-semibold" }, "Cost %"),
-                    React.createElement('span', { className: `${costColorClass} font-bold text-sm font-mono` }, stats.costPercent.toFixed(1), "%")
-                  )
-                ),
-                React.createElement('div', { className: "flex justify-between items-center mt-3 pt-3 border-t border-dashed border-[#334155]" },
-                  React.createElement('span', { className: "text-xs text-slate-400 font-medium" }, "GAIN NET / PLAT"),
-                  React.createElement('span', { className: "text-amber-400 font-extrabold text-lg" }, "+", stats.netGain.toFixed(2), " ", React.createElement('small', { className: "text-[10px]" }, "DH"))
-                ),
-                React.createElement('div', { className: "h-1.5 bg-[#334155] rounded-full mt-3 overflow-hidden" },
-                  React.createElement('div', {
-                    className: `h-full ${barColorClass} transition-all duration-500 ease-out`,
-                    style: { width: `${Math.min(stats.costPercent, 100)}%` }
-                  })
-                )
-              ) : React.createElement('div', { className: "py-8 text-center text-slate-500 italic text-sm" }, "Données financières non disponibles")
+            React.createElement('div', { className: "flex justify-between items-center mt-3 pt-3 border-t border-dashed border-[#334155]" },
+              React.createElement('span', { className: "text-xs text-slate-400 font-medium" }, "GAIN NET / PLAT"),
+              React.createElement('span', { className: "text-amber-400 font-extrabold text-lg" }, "+", stats.netGain.toFixed(2), " ", React.createElement('small', { className: "text-[10px]" }, "DH"))
             ),
-            React.createElement('div', { className: "p-4 flex-grow" },
-              React.createElement('h4', { className: "text-[11px] uppercase font-bold text-slate-400 mb-2 tracking-widest" }, "Ingrédients"),
-              React.createElement('ul', { className: "text-sm text-slate-400 space-y-1" },
-                item.tech.map((ing, idx) => React.createElement('li', { key: idx, className: "flex items-start" },
-                  React.createElement('span', { className: "text-[#334155] mr-2" }, "•"),
-                  React.createElement('span', { className: "leading-tight" }, ing)
-                ))
+            React.createElement('div', { className: "h-1.5 bg-[#334155] rounded-full mt-3 overflow-hidden" },
+              React.createElement('div', {
+                className: `h-full ${barColorClass} transition-all duration-500 ease-out`,
+                style: { width: `${Math.min(stats.costPercent, 100)}%` }
+              })
+            )
+          ) : React.createElement('div', { className: "py-6 text-center text-slate-500 italic text-sm" }, "Données financières non disponibles")
+        ),
+        React.createElement('div', { className: "p-4 flex-grow" },
+          React.createElement('h4', { className: "text-[11px] uppercase font-bold text-slate-400 mb-2 tracking-widest" }, "Ingrédients"),
+          React.createElement('ul', { className: "text-sm text-slate-400 space-y-1" },
+            (item.tech || []).map((ing, idx) => React.createElement('li', { key: idx, className: "flex items-start" },
+              React.createElement('span', { className: "text-[#334155] mr-2" }, "•"),
+              React.createElement('span', { className: "leading-tight" }, ing)
+            ))
+          )
+        )
+      );
+    };
+
+    const App = () => {
+      const [activeTab, setActiveTab] = useState(DATA[0].key);
+      const [searchQuery, setSearchQuery] = useState('');
+      const [excelPrices, setExcelPrices] = useState([]);
+      const [excelStatus, setExcelStatus] = useState({ ok:false, msg:"Excel: non chargé" });
+
+      const currentCategory = useMemo(() => DATA.find(cat => cat.key === activeTab), [activeTab]);
+
+      const filteredItems = useMemo(() => {
+        if (!currentCategory) return [];
+        if (!searchQuery) return currentCategory.items;
+        return currentCategory.items.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
+      }, [currentCategory, searchQuery]);
+
+      // ✅ Auto-load Excel (fiche menu.xlsx) if served from a web server
+      useEffect(() => {
+        (async () => {
+          try {
+            const prices = await loadExcelFromUrl("fiche menu.xlsx");
+            setExcelPrices(prices);
+            setExcelStatus({ ok:true, msg:`Excel: chargé (${prices.length} lignes)` });
+          } catch (e) {
+            setExcelPrices([]);
+            setExcelStatus({ ok:false, msg:"Excel: auto-load impossible (utilise le bouton Charger Excel)" });
+          }
+        })();
+      }, []);
+
+      const onExcelFile = async (file) => {
+        try {
+          const buf = await file.arrayBuffer();
+          const wb = XLSX.read(buf, { type: "array" });
+          const sheet = wb.Sheets[wb.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+          const prices = buildPricesFromRows(rows);
+          setExcelPrices(prices);
+          setExcelStatus({ ok:true, msg:`Excel: chargé (${prices.length} lignes)` });
+        } catch (e) {
+          setExcelPrices([]);
+          setExcelStatus({ ok:false, msg:"Excel: erreur de lecture" });
+        }
+      };
+
+      return React.createElement('div', { className: "min-h-screen bg-[#0f172a] text-slate-100 flex flex-col" },
+        React.createElement('header', { className: "sticky top-0 z-50 glass-header border-b border-[#334155] shadow-xl" },
+          React.createElement('div', { className: "max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4" },
+            React.createElement('div', { className: "flex items-center gap-3" },
+              React.createElement('h1', { className: "text-xl font-black tracking-tighter text-white" }, "GREY CORNER ", React.createElement('span', { className: "text-sky-400 font-light" }, "// ANALYTICS")),
+              React.createElement('span', { className: "bg-sky-500 text-[#0f172a] px-2 py-0.5 rounded text-[10px] font-black uppercase" }, "V2.4")
+            ),
+
+            React.createElement('div', { className: "flex items-center gap-3" },
+              // Excel status chip
+              React.createElement('span', {
+                className: `hidden md:inline-flex items-center gap-2 text-[10px] font-black uppercase px-3 py-1.5 rounded-full border ${
+                  excelStatus.ok ? "bg-emerald-500/10 text-emerald-300 border-emerald-400/30" : "bg-amber-500/10 text-amber-300 border-amber-400/30"
+                }`
+              }, excelStatus.msg),
+
+              // Excel upload button
+              React.createElement('label', {
+                className: "cursor-pointer text-[10px] font-black uppercase bg-slate-800/60 border border-slate-600 px-3 py-1.5 rounded-full hover:bg-slate-700/60 transition"
+              }, [
+                "Charger Excel",
+                React.createElement('input', {
+                  type: "file",
+                  accept: ".xlsx,.xls",
+                  className: "hidden",
+                  onChange: async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    await onExcelFile(file);
+                    e.target.value = "";
+                  }
+                })
+              ]),
+
+              // Search (desktop)
+              React.createElement('div', { className: "relative hidden md:block w-64" },
+                React.createElement('input', {
+                  type: "text",
+                  placeholder: "Rechercher un plat...",
+                  value: searchQuery,
+                  onChange: (e) => setSearchQuery(e.target.value),
+                  className: "w-full bg-[#0f172a] border border-[#334155] rounded-full py-1.5 px-4 pl-10 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all"
+                }),
+                React.createElement('svg', { className: "absolute left-3 top-2 w-4 h-4 text-slate-500", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24" },
+                  React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" })
+                )
               )
             )
-          );
-        };
+          ),
 
-        const App = () => {
-          const [activeTab, setActiveTab] = useState(DATA[0].key);
-          const [searchQuery, setSearchQuery] = useState('');
+          React.createElement('nav', { className: "border-t border-[#334155] bg-[#151e2e] overflow-x-auto no-scrollbar" },
+            React.createElement('div', { className: "max-w-7xl mx-auto px-2 flex" },
+              DATA.map(cat => React.createElement('button', {
+                key: cat.key,
+                onClick: () => { setActiveTab(cat.key); setSearchQuery(''); },
+                className: `px-6 py-4 text-xs font-black whitespace-nowrap tracking-widest transition-all duration-200 border-b-2 uppercase ${
+                  activeTab === cat.key ? 'text-sky-400 border-sky-400 bg-sky-400/5' : 'text-slate-500 border-transparent hover:text-white hover:bg-white/5'
+                }`
+              }, cat.category))
+            )
+          )
+        ),
 
-          const currentCategory = useMemo(() => DATA.find(cat => cat.key === activeTab), [activeTab]);
+        React.createElement('main', { className: "max-w-7xl mx-auto px-4 py-8 w-full flex-grow" },
+          React.createElement('div', { className: "mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4" },
+            React.createElement('div', null,
+              React.createElement('h2', { className: "text-3xl font-black text-white uppercase tracking-tighter" }, currentCategory?.category),
+              React.createElement('p', { className: "text-slate-400 text-sm mt-1 font-medium" }, "Analyse complète des marges et décomposition technique (auto depuis Excel).")
+            ),
+            React.createElement('div', { className: "md:hidden space-y-2" },
+              React.createElement('input', {
+                type: "text",
+                placeholder: "Rechercher...",
+                value: searchQuery,
+                onChange: (e) => setSearchQuery(e.target.value),
+                className: "w-full bg-[#1e293b] border border-[#334155] rounded-xl py-2.5 px-4 text-sm text-slate-200"
+              }),
+              React.createElement('div', {
+                className: `text-[10px] font-black uppercase px-3 py-2 rounded-xl border ${
+                  excelStatus.ok ? "bg-emerald-500/10 text-emerald-300 border-emerald-400/30" : "bg-amber-500/10 text-amber-300 border-amber-400/30"
+                }`
+              }, excelStatus.msg)
+            )
+          ),
 
-          const filteredItems = useMemo(() => {
-            if (!currentCategory) return [];
-            if (!searchQuery) return currentCategory.items;
-            return currentCategory.items.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
-          }, [currentCategory, searchQuery]);
-
-          return React.createElement('div', { className: "min-h-screen bg-[#0f172a] text-slate-100 flex flex-col" },
-            React.createElement('header', { className: "sticky top-0 z-50 glass-header border-b border-[#334155] shadow-xl" },
-              React.createElement('div', { className: "max-w-7xl mx-auto px-4 h-16 flex items-center justify-between" },
-                React.createElement('div', { className: "flex items-center gap-3" },
-                  React.createElement('h1', { className: "text-xl font-black tracking-tighter text-white" }, "GREY CORNER ", React.createElement('span', { className: "text-sky-400 font-light" }, "// ANALYTICS")),
-                  React.createElement('span', { className: "bg-sky-500 text-[#0f172a] px-2 py-0.5 rounded text-[10px] font-black uppercase" }, "V2.3")
-                ),
-                React.createElement('div', { className: "relative hidden md:block w-64" },
-                  React.createElement('input', {
-                    type: "text",
-                    placeholder: "Rechercher un plat...",
-                    value: searchQuery,
-                    onChange: (e) => setSearchQuery(e.target.value),
-                    className: "w-full bg-[#0f172a] border border-[#334155] rounded-full py-1.5 px-4 pl-10 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all"
-                  }),
-                  React.createElement('svg', { className: "absolute left-3 top-2 w-4 h-4 text-slate-500", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24" },
-                    React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" })
-                  )
-                )
-              ),
-              React.createElement('nav', { className: "border-t border-[#334155] bg-[#151e2e] overflow-x-auto no-scrollbar" },
-                React.createElement('div', { className: "max-w-7xl mx-auto px-2 flex" },
-                  DATA.map(cat => React.createElement('button', {
-                    key: cat.key,
-                    onClick: () => { setActiveTab(cat.key); setSearchQuery(''); },
-                    className: `px-6 py-4 text-xs font-black whitespace-nowrap tracking-widest transition-all duration-200 border-b-2 uppercase ${activeTab === cat.key ? 'text-sky-400 border-sky-400 bg-sky-400/5' : 'text-slate-500 border-transparent hover:text-white hover:bg-white/5'}`
-                  }, cat.category))
+          filteredItems.length > 0
+            ? React.createElement('div', { className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" },
+                filteredItems.map((item, idx) =>
+                  React.createElement(FoodCard, { key: `${item.name}-${idx}`, item, excelPrices })
                 )
               )
-            ),
-            React.createElement('main', { className: "max-w-7xl mx-auto px-4 py-8 w-full flex-grow" },
-              React.createElement('div', { className: "mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4" },
-                React.createElement('div', null,
-                  React.createElement('h2', { className: "text-3xl font-black text-white uppercase tracking-tighter" }, currentCategory?.category),
-                  React.createElement('p', { className: "text-slate-400 text-sm mt-1 font-medium" }, "Analyse complète des marges et décomposition technique.")
-                ),
-                React.createElement('div', { className: "md:hidden" },
-                  React.createElement('input', {
-                    type: "text",
-                    placeholder: "Rechercher...",
-                    value: searchQuery,
-                    onChange: (e) => setSearchQuery(e.target.value),
-                    className: "w-full bg-[#1e293b] border border-[#334155] rounded-xl py-2.5 px-4 text-sm text-slate-200"
-                  })
-                )
-              ),
-              filteredItems.length > 0 ? React.createElement('div', {
-                className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-              }, filteredItems.map((item, idx) => React.createElement(FoodCard, { key: `${item.name}-${idx}`, item: item })))
-              : React.createElement('div', { className: "py-40 text-center" },
+            : React.createElement('div', { className: "py-40 text-center" },
                 React.createElement('div', { className: "text-slate-500 text-xl font-semibold tracking-tight" }, `Aucun résultat pour "${searchQuery}"`),
                 React.createElement('button', {
                   onClick: () => setSearchQuery(''),
                   className: "mt-6 bg-sky-500/10 text-sky-400 px-6 py-2 rounded-full text-sm font-bold hover:bg-sky-500/20 transition-all"
                 }, "Réinitialiser la recherche")
               )
-            ),
-            React.createElement('footer', { className: "bg-[#1e293b] border-t border-[#334155] py-8" },
-              React.createElement('div', { className: "max-w-7xl mx-auto px-4 text-center" },
-                React.createElement('div', { className: "text-slate-500 text-[10px] tracking-[0.3em] font-black uppercase mb-2" }, "© 2024 GREY CORNER — FOOD COST INTELLIGENCE"),
-                React.createElement('div', { className: "text-slate-600 text-[9px] font-medium uppercase tracking-widest" }, "Propriété exclusive de la direction Grey Corner")
-              )
-            )
-          );
-        };
+        ),
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(React.createElement(App));
-    </script>
+        React.createElement('footer', { className: "bg-[#1e293b] border-t border-[#334155] py-8" },
+          React.createElement('div', { className: "max-w-7xl mx-auto px-4 text-center" },
+            React.createElement('div', { className: "text-slate-500 text-[10px] tracking-[0.3em] font-black uppercase mb-2" }, "© 2024 GREY CORNER — FOOD COST INTELLIGENCE"),
+            React.createElement('div', { className: "text-slate-600 text-[9px] font-medium uppercase tracking-widest" }, "Propriété exclusive de la direction Grey Corner")
+          )
+        )
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(App));
+  </script>
 </body>
 </html>
