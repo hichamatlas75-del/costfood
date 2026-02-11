@@ -147,4 +147,658 @@
           { name: "VIANDE HACHEE", image: "images/sand-hache.jpg", tech: ["(À renseigner)"] },
 
           // ✅ Nouveau (Excel/menu)
-          { name: "POULARD", image:
+          { name: "POULARD", image: "images/sand-cheesesteak.jpg", tech: ["(À renseigner)"] },
+        ],
+      },
+      {
+        category: "PIZZA",
+        key: "pz",
+        items: [
+          { name: "PIZZA MARGARITA", image: "images/pizza-margherita.jpg", tech: ["(À renseigner)"] },
+          { name: "PIZZA THON", image: "images/pizza-thon.jpg", tech: ["(À renseigner)"] },
+          { name: "PIZZA VEGETARIENNE", image: "images/pizza-veggie.jpg", tech: ["(À renseigner)"] },
+          { name: "PIZZA REGINA", image: "images/pizza-regina.jpg", tech: ["(À renseigner)"] },
+          { name: "PIZZA 5 FROMAGE", image: "images/pizza-5fromages.jpg", tech: ["(À renseigner)"] },
+          { name: "PIZZA VIANDE HACHEE", image: "images/pizza-hache.jpg", tech: ["(À renseigner)"] },
+          { name: "PIZZA PEPPERONI", image: "images/pizza-pepperoni.jpg", tech: ["(À renseigner)"] },
+          { name: "PIZZA POULET CHAMPIGNON", image: "images/pizza-pouletblanche.jpg", tech: ["(À renseigner)"] },
+          { name: "PIZZA 4 SAISON", image: "images/pizza-4saisons.jpg", tech: ["(À renseigner)"] },
+          { name: "PIZZA BURRATA", image: "images/pizza-burrata.jpg", tech: ["(À renseigner)"] },
+          { name: "FRUITE DE MER", image: "images/pizza-fruitsmer.jpg", tech: ["(À renseigner)"] },
+          { name: "PIZZA SAUMON", image: "images/pizza-saumon.jpg", tech: ["(À renseigner)"] },
+        ],
+      },
+      {
+        category: "PÂTES",
+        key: "pt",
+        items: [
+          { name: "PASTA VEGETARIENNE", image: "images/pasta-veg.jpg", tech: ["(À renseigner)"] },
+          { name: "PASTA CARBONARA", image: "images/pasta-carbonara.jpg", tech: ["(À renseigner)"] },
+          { name: "PASTA 5 FROMAGE", image: "images/pasta-5fromages.jpg", tech: ["(À renseigner)"] },
+          { name: "PASTA RIGATONI RICOTTA", image: "images/pasta-ricotta.jpg", tech: ["(À renseigner)"] },
+          { name: "PASTA BOLOGNAISE", image: "images/pasta-bolognaise.jpg", tech: ["(À renseigner)"] },
+          { name: "PASTA POULET CHAMPIGNON", image: "images/pasta-poulet.jpg", tech: ["(À renseigner)"] },
+          { name: "PASTA FRUIT DE MER", image: "images/pasta-fruitsmer.jpg", tech: ["(À renseigner)"] },
+          { name: "PASTA SAUMON", image: "images/pasta-saumon.jpg", tech: ["(À renseigner)"] },
+
+          // ✅ Lasagnes (Excel)
+          { name: "LASAGNE POULET", image: "images/lasagne_poulet.jpeg", tech: ["(À renseigner)"] },
+          { name: "LASAGNE BOLOGNAISE", image: "images/lasagne_bolognaise.jpeg", tech: ["(À renseigner)"] },
+          { name: "LASAGNE FRUIT DE MER", image: "images/lasagne_fruitdemer.jpeg", tech: ["(À renseigner)"] },
+        ],
+      },
+
+      // ✅ Onglet auto: produits présents dans Excel mais pas encore dans DATA
+      { category: "NOUVEAUX / À AJOUTER", key: "nx", items: [] },
+    ];
+
+    // =========================================================
+    // ✅ SMART MATCHING (alias + normalisation + fuzzy)
+    // =========================================================
+    const normalizeStr = (str) => {
+      if (!str) return "";
+      return String(str)
+        .toUpperCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/['’]/g, "")
+        .replace(/&/g, " ")
+        .replace(/\bS\b/g, "")          // ex: "S. ROUGE"
+        .replace(/\bDE\b|\bDU\b|\bDES\b|\bA\b|\bLA\b|\bLE\b|\bLES\b|\bAUX\b|\bAU\b/g, " ")
+        .replace(/[^A-Z0-9 ]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    };
+
+    const simplifyForMatch = (s) => {
+      // enlève pluriels simples, variantes
+      let x = normalizeStr(s);
+      x = x.replace(/\bSAISON(S)?\b/g, "SAISON");
+      x = x.replace(/\bVEGETARIENNE\b/g, "VEGETARIENNE");
+      x = x.replace(/\bVEGETARIEN\b/g, "VEGETARIENNE");
+      x = x.replace(/\bPAVE\b/g, "PAVE");
+      x = x.replace(/\bEMINCE(E|ES)?\b/g, "EMINCE");
+      x = x.replace(/\bBROCHETTE(S)?\b/g, "BROCHETTE");
+      x = x.replace(/\bFRUIT(S)?\b/g, "FRUIT");
+      x = x.replace(/\bMER\b/g, "MER");
+      x = x.replace(/\bFROMAGES\b/g, "FROMAGE");
+      x = x.replace(/\bHACHEE\b/g, "HACHEE");
+      x = x.replace(/\bBOEUF\b/g, "BOEUF");
+      x = x.replace(/\bBŒUF\b/g, "BOEUF");
+      return x;
+    };
+
+    const levenshtein = (a, b) => {
+      // petit fuzzy matching local
+      a = a || ""; b = b || "";
+      const m = a.length, n = b.length;
+      if (m === 0) return n;
+      if (n === 0) return m;
+      const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+      for (let i = 0; i <= m; i++) dp[i][0] = i;
+      for (let j = 0; j <= n; j++) dp[0][j] = j;
+      for (let i = 1; i <= m; i++) {
+        for (let j = 1; j <= n; j++) {
+          const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+          dp[i][j] = Math.min(
+            dp[i - 1][j] + 1,
+            dp[i][j - 1] + 1,
+            dp[i - 1][j - 1] + cost
+          );
+        }
+      }
+      return dp[m][n];
+    };
+
+    // ✅ Alias manuels (tu peux en ajouter à volonté)
+    const NAME_MAPPING = {
+      "SALADE VEGGIE": "CERCLE VEGGI",
+      "SALADE TERRE & MER": "SALADE TERRE MER",
+      "SALADE TERRE MER": "SALADE TERRE MER",
+      "TARTARE SAUMON": "SALADE TARTARE SAUMON",
+      "PIZZA VEGETARIENNE": "PIZZA VEGETARIENNE",
+      "PIZZA VIGETARIENNE": "PIZZA VEGETARIENNE", // faute fréquente
+      "PIZZA 4 SAISONS": "PIZZA 4 SAISON",
+      "PIL PIL ESPAGNOL": "PIL PIL",
+      "PIZZA POULET SAUCE BLANCHE": "PIZZA POULET CHAMPIGNON",
+      "REGATONI RICOTTA": "PASTA RIGATONI RICOTTA",
+      "PASTA REGATONI RICOTTA": "PASTA RIGATONI RICOTTA",
+      "FRUITS DE MER": "FRUITE DE MER",
+      "FRUIT DE MER": "FRUITE DE MER",
+      "BROCHETTES DE POULET": "BROCHETTE DE POULET",
+      "PAVE DE SAUMON": "PAVE DE SAUMON",
+      "PAVÉ DE SAUMON": "PAVE DE SAUMON",
+      "EMINCEE DE BOEUF": "EMINCEE DE BOEUF",
+      "EMINCE DE BOEUF": "EMINCEE DE BOEUF",
+    };
+
+    // =========================================================
+    // ✅ Lecture Excel -> EXCEL_PRICES (auto)
+    // =========================================================
+    const toNumber = (val) => {
+      if (val === null || val === undefined) return NaN;
+      if (typeof val === "number") return val;
+      const s = String(val).replace(/\s/g, "").replace(",", ".");
+      const n = Number(s);
+      return Number.isFinite(n) ? n : NaN;
+    };
+
+    const pick = (obj, keys) => {
+      if (!obj) return undefined;
+      const map = new Map(Object.entries(obj).map(([k, v]) => [normalizeStr(k), v]));
+      for (const k of keys) {
+        const v = map.get(normalizeStr(k));
+        if (v !== undefined) return v;
+      }
+      return undefined;
+    };
+
+    const buildPricesFromRows = (rows) => {
+      const out = [];
+      for (const r of rows) {
+        const name = pick(r, [
+          "Nom du Plat",
+          "nom du plat",
+          "name","article","produit","plat","designation","désignation","libelle","libellé"
+        ]);
+
+        const cost = toNumber(pick(r, [
+          "Coût DE REVIENS",
+          "Coût de reviens",
+          "Coût de revient",
+          "cout de reviens",
+          "cout de revient",
+          "cost","cout","coût","foodcost","fc","prix_revient","prixde_revient","prix_de_revient"
+        ]));
+
+        const price = toNumber(pick(r, [
+          "PRIX DE VENTE",
+          "Prix de vente",
+          "prix vente",
+          "price","prix","vente","prix_vente","prixdevente","prix_de_vente"
+        ]));
+
+        const costFood = toNumber(pick(r, [
+          "COST FOOD %",
+          "cost food %",
+          "COST FOOD%",
+          "food cost %",
+          "foodcost %",
+          "cost%"
+        ]));
+
+        if (!name) continue;
+        const rawName = String(name).trim();
+        if (REMOVED_ITEMS.has(simplifyForMatch(rawName))) continue;
+
+        if (!Number.isFinite(cost) || !Number.isFinite(price) || price <= 0) continue;
+
+        const gain = Number.isFinite(costFood)
+          ? (100 - costFood)
+          : ((price - cost) / price) * 100;
+
+        out.push({ name: rawName, cost, price, gain });
+      }
+      return out;
+    };
+
+    const sheetToJson = (workbook) => {
+      const sheetName = workbook.SheetNames?.[0];
+      if (!sheetName) return [];
+      const sheet = workbook.Sheets[sheetName];
+      // defval:"" pour garder colonnes
+      return XLSX.utils.sheet_to_json(sheet, { defval: "" });
+    };
+
+    // =========================================================
+    // ✅ Matching prix: exact -> alias -> inclusion -> fuzzy
+    // =========================================================
+    const buildPriceIndex = (excelPrices) => {
+      const idx = new Map();
+      for (const p of excelPrices) {
+        const k = simplifyForMatch(p.name);
+        idx.set(k, p);
+      }
+      return idx;
+    };
+
+    const getBestMatch = (itemName, excelPrices, priceIndex) => {
+      if (!excelPrices?.length) return null;
+
+      const normItem = simplifyForMatch(itemName);
+
+      // 1) suppression demandée
+      if (REMOVED_ITEMS.has(normItem)) return null;
+
+      // 2) alias manuel
+      const alias = NAME_MAPPING[normItem];
+      if (alias) {
+        const hit = priceIndex.get(simplifyForMatch(alias));
+        if (hit) return hit;
+      }
+
+      // 3) exact
+      const exact = priceIndex.get(normItem);
+      if (exact) return exact;
+
+      // 4) inclusion (contient)
+      for (const p of excelPrices) {
+        const pn = simplifyForMatch(p.name);
+        if (pn && (normItem.includes(pn) || pn.includes(normItem))) return p;
+      }
+
+      // 5) fuzzy levenshtein (seuil)
+      let best = null;
+      let bestScore = Infinity;
+
+      for (const p of excelPrices) {
+        const pn = simplifyForMatch(p.name);
+        if (!pn) continue;
+        const d = levenshtein(normItem, pn);
+
+        // seuil adaptatif
+        const maxLen = Math.max(normItem.length, pn.length);
+        const allowed = maxLen <= 12 ? 2 : maxLen <= 20 ? 3 : 4;
+
+        if (d <= allowed && d < bestScore) {
+          best = p;
+          bestScore = d;
+        }
+      }
+
+      return best;
+    };
+
+    // =========================================================
+    // ✅ UI Card
+    // =========================================================
+    const FoodCard = ({ item, excelPrices, priceIndex }) => {
+      const matched = getBestMatch(item.name, excelPrices, priceIndex);
+
+      const stats = useMemo(() => {
+        if (!matched) return { cost: 0, price: 0, marginPercent: 0, costPercent: 0, netGain: 0, isAvailable: false };
+        const costPercent = (matched.cost / matched.price) * 100;
+        return {
+          cost: matched.cost,
+          price: matched.price,
+          marginPercent: matched.gain,
+          costPercent,
+          netGain: matched.price - matched.cost,
+          isAvailable: true
+        };
+      }, [matched]);
+
+      const isHighCost = stats.costPercent > 35;
+      const costColorClass = isHighCost ? "text-rose-500" : "text-emerald-500";
+      const barColorClass = isHighCost ? "bg-rose-500" : "bg-emerald-500";
+
+      return React.createElement(
+        "div",
+        { className: "bg-[#1e293b] border border-[#334155] rounded-xl overflow-hidden flex flex-col transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/50 group" },
+        React.createElement(
+          "div",
+          { className: "relative h-44 overflow-hidden" },
+          React.createElement("img", {
+            src: item.image,
+            alt: item.name,
+            className: "w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300",
+            onError: (e) => { e.target.src = "https://placehold.co/400x300?text=No+Image"; }
+          }),
+          React.createElement("div", { className: "absolute inset-0 bg-gradient-to-t from-[#0f172a] via-transparent to-transparent opacity-90" }),
+          React.createElement(
+            "div",
+            { className: "absolute bottom-3 left-4 right-4" },
+            React.createElement(
+              "h3",
+              { className: "text-lg font-bold text-white drop-shadow-lg leading-tight" },
+              item.name.replace(/_/g, " ")
+            )
+          )
+        ),
+        React.createElement(
+          "div",
+          { className: "p-4 bg-[#161f2e] border-b border-[#334155]" },
+          stats.isAvailable
+            ? React.createElement(
+                React.Fragment,
+                null,
+                React.createElement(
+                  "div",
+                  { className: "grid grid-cols-4 gap-px bg-[#334155] border border-[#334155] rounded-lg overflow-hidden" },
+                  React.createElement(
+                    "div",
+                    { className: "bg-[#1e293b] p-2 text-center flex flex-col justify-center" },
+                    React.createElement("span", { className: "text-[9px] uppercase text-slate-400 mb-1 tracking-wider font-semibold" }, "Coût"),
+                    React.createElement("span", { className: "text-rose-500 font-bold text-sm font-mono" }, stats.cost.toFixed(2))
+                  ),
+                  React.createElement(
+                    "div",
+                    { className: "bg-[#1e293b] p-2 text-center flex flex-col justify-center" },
+                    React.createElement("span", { className: "text-[9px] uppercase text-slate-400 mb-1 tracking-wider font-semibold" }, "Prix"),
+                    React.createElement("span", { className: "text-white font-bold text-sm font-mono" }, stats.price.toFixed(0))
+                  ),
+                  React.createElement(
+                    "div",
+                    { className: "bg-[#1e293b] p-2 text-center flex flex-col justify-center" },
+                    React.createElement("span", { className: "text-[9px] uppercase text-slate-400 mb-1 tracking-wider font-semibold" }, "Marge %"),
+                    React.createElement("span", { className: "text-emerald-400 font-bold text-sm font-mono" }, Math.round(stats.marginPercent), "%")
+                  ),
+                  React.createElement(
+                    "div",
+                    { className: "bg-[#1e293b] p-2 text-center flex flex-col justify-center" },
+                    React.createElement("span", { className: "text-[9px] uppercase text-slate-400 mb-1 tracking-wider font-semibold" }, "Cost %"),
+                    React.createElement("span", { className: `${costColorClass} font-bold text-sm font-mono` }, stats.costPercent.toFixed(1), "%")
+                  )
+                ),
+                React.createElement(
+                  "div",
+                  { className: "flex justify-between items-center mt-3 pt-3 border-t border-dashed border-[#334155]" },
+                  React.createElement("span", { className: "text-xs text-slate-400 font-medium" }, "GAIN NET / PLAT"),
+                  React.createElement(
+                    "span",
+                    { className: "text-amber-400 font-extrabold text-lg" },
+                    "+",
+                    stats.netGain.toFixed(2),
+                    " ",
+                    React.createElement("small", { className: "text-[10px]" }, "DH")
+                  )
+                ),
+                React.createElement(
+                  "div",
+                  { className: "h-1.5 bg-[#334155] rounded-full mt-3 overflow-hidden" },
+                  React.createElement("div", {
+                    className: `h-full ${barColorClass} transition-all duration-500 ease-out`,
+                    style: { width: `${Math.min(stats.costPercent, 100)}%` }
+                  })
+                )
+              )
+            : React.createElement("div", { className: "py-8 text-center text-slate-500 italic text-sm" }, "Données financières non disponibles")
+        ),
+        React.createElement(
+          "div",
+          { className: "p-4 flex-grow" },
+          React.createElement("h4", { className: "text-[11px] uppercase font-bold text-slate-400 mb-2 tracking-widest" }, "Ingrédients"),
+          React.createElement(
+            "ul",
+            { className: "text-sm text-slate-400 space-y-1" },
+            (item.tech?.length ? item.tech : ["(À renseigner)"]).map((ing, idx) =>
+              React.createElement(
+                "li",
+                { key: idx, className: "flex items-start" },
+                React.createElement("span", { className: "text-[#334155] mr-2" }, "•"),
+                React.createElement("span", { className: "leading-tight" }, ing)
+              )
+            )
+          )
+        )
+      );
+    };
+
+    // =========================================================
+    // ✅ APP
+    // =========================================================
+    const App = () => {
+      const [activeTab, setActiveTab] = useState(DATA[0].key);
+      const [searchQuery, setSearchQuery] = useState("");
+
+      // Excel data
+      const [excelPrices, setExcelPrices] = useState([]);
+      const [excelStatus, setExcelStatus] = useState({ ok: false, msg: "Chargement…" , ts: null });
+
+      const priceIndex = useMemo(() => buildPriceIndex(excelPrices), [excelPrices]);
+
+      const loadExcelFromUrl = async (url) => {
+        try {
+          setExcelStatus({ ok: false, msg: "Chargement Excel…", ts: null });
+          const res = await fetch(url, { cache: "no-store" });
+          if (!res.ok) throw new Error("Impossible de charger le fichier (HTTP " + res.status + ")");
+          const buf = await res.arrayBuffer();
+          const wb = XLSX.read(buf, { type: "array" });
+          const rows = sheetToJson(wb);
+          const prices = buildPricesFromRows(rows);
+          setExcelPrices(prices);
+          setExcelStatus({ ok: true, msg: `Excel chargé: ${prices.length} lignes`, ts: new Date() });
+        } catch (e) {
+          setExcelPrices([]);
+          setExcelStatus({ ok: false, msg: "Erreur Excel: " + (e?.message || e), ts: null });
+        }
+      };
+
+      const loadExcelFromFile = async (file) => {
+        try {
+          setExcelStatus({ ok: false, msg: "Lecture du fichier…", ts: null });
+          const buf = await file.arrayBuffer();
+          const wb = XLSX.read(buf, { type: "array" });
+          const rows = sheetToJson(wb);
+          const prices = buildPricesFromRows(rows);
+          setExcelPrices(prices);
+          setExcelStatus({ ok: true, msg: `Excel importé: ${prices.length} lignes`, ts: new Date() });
+        } catch (e) {
+          setExcelPrices([]);
+          setExcelStatus({ ok: false, msg: "Erreur import: " + (e?.message || e), ts: null });
+        }
+      };
+
+      // ✅ auto-load: fichier dans le même dossier (mets le bon nom si besoin)
+      useEffect(() => {
+        loadExcelFromUrl("fiche menu.xlsx");
+      }, []);
+
+      // current category
+      const currentCategory = useMemo(() => DATA.find((cat) => cat.key === activeTab), [activeTab]);
+
+      // ✅ calc "NOUVEAUX / À AJOUTER"
+      const dataWithNewTab = useMemo(() => {
+        const allDataNames = new Set();
+        const cloned = DATA.map((c) => ({
+          ...c,
+          items: (c.items || []).filter((it) => !REMOVED_ITEMS.has(simplifyForMatch(it.name)))
+        }));
+
+        for (const c of cloned) for (const it of c.items || []) allDataNames.add(simplifyForMatch(it.name));
+
+        const missing = [];
+        for (const p of excelPrices) {
+          const pn = simplifyForMatch(p.name);
+          if (!pn) continue;
+          if (REMOVED_ITEMS.has(pn)) continue;
+          if (!allDataNames.has(pn)) {
+            missing.push({ name: p.name, image: "https://placehold.co/400x300?text=New", tech: ["(Pas encore dans le menu DATA)"] });
+          }
+        }
+
+        return cloned.map((c) => c.key === "nx" ? { ...c, items: missing } : c);
+      }, [excelPrices]);
+
+      const realCurrentCategory = useMemo(() => dataWithNewTab.find((cat) => cat.key === activeTab), [dataWithNewTab, activeTab]);
+
+      const filteredItems = useMemo(() => {
+        if (!realCurrentCategory) return [];
+        let items = realCurrentCategory.items || [];
+        if (!searchQuery) return items;
+        const q = searchQuery.toLowerCase();
+        return items.filter((item) => String(item.name).toLowerCase().includes(q));
+      }, [realCurrentCategory, searchQuery]);
+
+      return React.createElement(
+        "div",
+        { className: "min-h-screen bg-[#0f172a] text-slate-100 flex flex-col" },
+
+        // Header
+        React.createElement(
+          "header",
+          { className: "sticky top-0 z-50 glass-header border-b border-[#334155] shadow-xl" },
+          React.createElement(
+            "div",
+            { className: "max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4" },
+
+            React.createElement(
+              "div",
+              { className: "flex items-center gap-3" },
+              React.createElement(
+                "h1",
+                { className: "text-xl font-black tracking-tighter text-white" },
+                "GREY CORNER ",
+                React.createElement("span", { className: "text-sky-400 font-light" }, "// ANALYTICS")
+              ),
+              React.createElement("span", { className: "bg-sky-500 text-[#0f172a] px-2 py-0.5 rounded text-[10px] font-black uppercase" }, "V3.0")
+            ),
+
+            React.createElement(
+              "div",
+              { className: "flex items-center gap-2" },
+              React.createElement(
+                "div",
+                { className: `px-3 py-1 rounded-full text-[11px] font-bold border ${excelStatus.ok ? "border-emerald-500/40 text-emerald-300 bg-emerald-500/10" : "border-rose-500/40 text-rose-300 bg-rose-500/10"}` },
+                excelStatus.msg,
+                excelStatus.ts ? ` • ${excelStatus.ts.toLocaleTimeString()}` : ""
+              ),
+              React.createElement(
+                "button",
+                {
+                  className: "px-3 py-1 rounded-full text-[11px] font-black bg-white/5 hover:bg-white/10 border border-[#334155] transition",
+                  onClick: () => loadExcelFromUrl("fiche menu.xlsx")
+                },
+                "Recharger Excel"
+              ),
+              React.createElement(
+                "label",
+                { className: "px-3 py-1 rounded-full text-[11px] font-black bg-white/5 hover:bg-white/10 border border-[#334155] transition cursor-pointer" },
+                "Importer .xlsx",
+                React.createElement("input", {
+                  type: "file",
+                  accept: ".xlsx,.xls",
+                  className: "hidden",
+                  onChange: (e) => {
+                    const f = e.target.files?.[0];
+                    if (f) loadExcelFromFile(f);
+                    e.target.value = "";
+                  }
+                })
+              )
+            )
+          ),
+
+          // Search desktop
+          React.createElement(
+            "div",
+            { className: "max-w-7xl mx-auto px-4 pb-3 hidden md:block" },
+            React.createElement(
+              "div",
+              { className: "relative w-72" },
+              React.createElement("input", {
+                type: "text",
+                placeholder: "Rechercher un plat...",
+                value: searchQuery,
+                onChange: (e) => setSearchQuery(e.target.value),
+                className: "w-full bg-[#0f172a] border border-[#334155] rounded-full py-1.5 px-4 pl-10 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all"
+              }),
+              React.createElement(
+                "svg",
+                { className: "absolute left-3 top-2 w-4 h-4 text-slate-500", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24" },
+                React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" })
+              )
+            )
+          ),
+
+          // Tabs
+          React.createElement(
+            "nav",
+            { className: "border-t border-[#334155] bg-[#151e2e] overflow-x-auto no-scrollbar" },
+            React.createElement(
+              "div",
+              { className: "max-w-7xl mx-auto px-2 flex" },
+              dataWithNewTab.map((cat) =>
+                React.createElement(
+                  "button",
+                  {
+                    key: cat.key,
+                    onClick: () => { setActiveTab(cat.key); setSearchQuery(""); },
+                    className: `px-6 py-4 text-xs font-black whitespace-nowrap tracking-widest transition-all duration-200 border-b-2 uppercase ${
+                      activeTab === cat.key
+                        ? "text-sky-400 border-sky-400 bg-sky-400/5"
+                        : "text-slate-500 border-transparent hover:text-white hover:bg-white/5"
+                    }`
+                  },
+                  cat.category
+                )
+              )
+            )
+          )
+        ),
+
+        // Main
+        React.createElement(
+          "main",
+          { className: "max-w-7xl mx-auto px-4 py-8 w-full flex-grow" },
+
+          React.createElement(
+            "div",
+            { className: "mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4" },
+            React.createElement(
+              "div",
+              null,
+              React.createElement("h2", { className: "text-3xl font-black text-white uppercase tracking-tighter" }, realCurrentCategory?.category || ""),
+              React.createElement("p", { className: "text-slate-400 text-sm mt-1 font-medium" },
+                "Marges auto depuis Excel (Nom du Plat / Coût de reviens / Prix de vente / Cost food %)."
+              )
+            ),
+            React.createElement(
+              "div",
+              { className: "md:hidden" },
+              React.createElement("input", {
+                type: "text",
+                placeholder: "Rechercher...",
+                value: searchQuery,
+                onChange: (e) => setSearchQuery(e.target.value),
+                className: "w-full bg-[#1e293b] border border-[#334155] rounded-xl py-2.5 px-4 text-sm text-slate-200"
+              })
+            )
+          ),
+
+          filteredItems.length > 0
+            ? React.createElement(
+                "div",
+                { className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" },
+                filteredItems.map((item, idx) =>
+                  React.createElement(FoodCard, {
+                    key: `${item.name}-${idx}`,
+                    item,
+                    excelPrices,
+                    priceIndex
+                  })
+                )
+              )
+            : React.createElement(
+                "div",
+                { className: "py-40 text-center" },
+                React.createElement("div", { className: "text-slate-500 text-xl font-semibold tracking-tight" }, `Aucun résultat pour "${searchQuery}"`),
+                React.createElement(
+                  "button",
+                  {
+                    onClick: () => setSearchQuery(""),
+                    className: "mt-6 bg-sky-500/10 text-sky-400 px-6 py-2 rounded-full text-sm font-bold hover:bg-sky-500/20 transition-all"
+                  },
+                  "Réinitialiser la recherche"
+                )
+              )
+        ),
+
+        // Footer
+        React.createElement(
+          "footer",
+          { className: "bg-[#1e293b] border-t border-[#334155] py-8" },
+          React.createElement(
+            "div",
+            { className: "max-w-7xl mx-auto px-4 text-center" },
+            React.createElement("div", { className: "text-slate-500 text-[10px] tracking-[0.3em] font-black uppercase mb-2" }, "© 2024 GREY CORNER — FOOD COST INTELLIGENCE"),
+            React.createElement("div", { className: "text-slate-600 text-[9px] font-medium uppercase tracking-widest" }, "Propriété exclusive de la direction Grey Corner")
+          )
+        )
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(React.createElement(App));
+  </script>
+</body>
+</html>
